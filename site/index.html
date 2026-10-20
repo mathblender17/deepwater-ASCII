@@ -629,6 +629,7 @@ try {
   const mod = window.RoninOcean;
   SPECIES = mod.SPECIES;
   ocean = mod.mountOcean(canvas, roster, interaction);
+  window.__ocean = ocean; // handle for console checks and the creature layer
 } catch (e) {
   console.warn("Ocean failed to start", e);
 }

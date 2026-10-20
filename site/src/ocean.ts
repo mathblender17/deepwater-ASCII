@@ -6,7 +6,7 @@
  * same canvas. Phase 2 (kraken / legendary) plugs in here: add a creature kind
  * to the vendor world + renderer, then expose it through `Roster`.
  */
-import { OceanEngine, type SharkKind, type SharkSpec } from "../../vendor-ascii-sharks/src";
+import { OceanEngine, type Layer, type SharkKind, type SharkSpec } from "../../vendor-ascii-sharks/src";
 
 export type Kind = SharkKind | "mixed";
 export type Roster = { kind: Kind; count: number };
@@ -35,16 +35,35 @@ export function specs({ kind, count }: Roster): SharkSpec[] {
   }));
 }
 
+export type Repel = { x: number; y: number; r: number } | null;
+
 export function mountOcean(canvas: HTMLCanvasElement, roster: Roster, interaction: Interaction) {
+  // Kept here so they survive the engine restarts that roster changes cause.
+  const layers: Layer[] = [];
+  let repel: Repel = null;
   const start = () => {
     const e = new OceanEngine(canvas, specs(roster));
     e.setKeepCenterClear(false);
     e.setCursorMode(interaction.cursor);
     e.clickMode = interaction.click;
+    for (const l of layers) e.addLayer(l);
+    e.setRepel(repel);
     return e;
   };
   let engine = start();
   return {
+    canvas,
+    addLayer(layer: Layer) {
+      layers.push(layer);
+      engine.addLayer(layer);
+    },
+    setRepel(r: Repel) {
+      repel = r;
+      engine.setRepel(r);
+    },
+    splash(x: number, y: number) {
+      engine.splash(x, y);
+    },
     set(next: Roster) {
       roster = next;
       engine.destroy();

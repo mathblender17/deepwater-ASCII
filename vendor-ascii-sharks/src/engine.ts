@@ -1,4 +1,4 @@
-import { AsciiRenderer } from "./renderer";
+import { AsciiRenderer, type Layer } from "./renderer";
 import { World, type SharkSpec } from "./world";
 
 const STEP = 1 / 60;
@@ -53,6 +53,18 @@ export class OceanEngine {
   /** "scare": fish flee the cursor. "bait": sharks chase it too. */
   setCursorMode(mode: "scare" | "bait") {
     this.world.pointer.mode = mode;
+  }
+
+  addLayer(layer: Layer) {
+    this.renderer.layers.push(layer);
+  }
+
+  setRepel(r: World["repel"]) {
+    this.world.repel = r;
+  }
+
+  splash(x: number, y: number) {
+    this.world.splash(x, y);
   }
 
   setKeepCenterClear(on: boolean) {

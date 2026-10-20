@@ -266,7 +266,13 @@ export function paintGrid(g: CanvasRenderingContext2D, W: number, H: number, cw:
   g.stroke();
 }
 
+/** The cell grid as an extra layer sees it. */
+export type Grid = { cw: number; ch: number; cols: number; rows: number; t: number };
+/** Something drawn on the grid by the page: "under" goes beneath the sharks, "over" on top of everything. */
+export type Layer = { depth: "under" | "over"; draw(ctx: CanvasRenderingContext2D, grid: Grid): void };
+
 export class AsciiRenderer {
+  layers: Layer[] = [];
   private ctx: CanvasRenderingContext2D;
   private bg: HTMLCanvasElement;
   private dpr = 1;
@@ -419,7 +425,10 @@ export class AsciiRenderer {
 
     this.drawHeat();
     this.drawFish();
+    const grid: Grid = { cw: this.cw, ch, cols, rows: this.rows, t };
+    for (const l of this.layers) if (l.depth === "under") l.draw(ctx, grid);
     this.drawSharks(t);
+    for (const l of this.layers) if (l.depth === "over") l.draw(ctx, grid);
   }
 
   // ── simulation → field ──────────────────────────────────────────────
