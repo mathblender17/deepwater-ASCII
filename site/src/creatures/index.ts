@@ -10,7 +10,7 @@ import { riseAt } from "./rise.ts";
 import { drawSerpent } from "./serpent-draw.ts";
 import { swivelAt } from "./swivel.ts";
 import { clearZones, type Scene } from "./scene.ts";
-import { Scheduler } from "./scheduler.ts";
+import { pickCreature, Scheduler } from "./scheduler.ts";
 import { drawWater } from "./water.ts";
 
 type Ocean = {
@@ -175,7 +175,8 @@ export async function mountCreatures(ocean: Ocean, opts: { packUrl: string; onRe
     return { w: r.width, h: r.height, cw: grid?.cw ?? 12 };
   };
   const begin = () => {
-    const pick = creatures.find((c) => c.name === requested) ?? creatures[Math.floor(Math.random() * creatures.length)];
+    const name = requested ?? pickCreature(Math.random, creatures);
+    const pick = creatures.find((c) => c.name === name) ?? creatures[0];
     requested = null;
     current = { creature: pick, placement: place(pick, view()) };
     foamsSeen = new Set();

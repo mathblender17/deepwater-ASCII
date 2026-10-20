@@ -471,10 +471,8 @@ figcaption { margin-top: 12px; font-size: var(--step-small); color: var(--field-
         <div class="row"><span id="v-zen">Only the ocean<kbd>H</kbd></span><button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="v-zen" id="zen"></button></div>
       </div>
       <div id="legendaries" hidden>
-        <h2>Legendaries</h2>
-        <div class="group">
-          <div class="row"><span id="summon-label">Lugia</span><button class="btn summon" type="button" id="summon" aria-describedby="summon-label">Summon</button></div>
-        </div>
+        <h2>Summon</h2>
+        <div class="group" id="summon-list"></div>
       </div>
     </div>
   </section>
@@ -641,12 +639,28 @@ try {
   // Local-only Pokémon pack (git-ignored); missing pack = no creatures, nothing else changes.
   mod.mountCreatures(ocean, {
     packUrl: "../pokemon-pack/pack.json",
-    onReady(summon, busy) {
-      const btn = document.getElementById("summon");
+    onReady(summon, busy, names) {
+      const list = document.getElementById("summon-list");
+      const buttons = names.map((name) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        const label = document.createElement("span");
+        label.id = `summon-${name}-label`;
+        label.textContent = name[0].toUpperCase() + name.slice(1);
+        const btn = document.createElement("button");
+        btn.className = "btn summon";
+        btn.type = "button";
+        btn.dataset.creature = name;
+        btn.textContent = "Summon";
+        btn.setAttribute("aria-describedby", label.id);
+        btn.addEventListener("click", () => summon(name));
+        row.append(label, btn);
+        list.append(row);
+        return btn;
+      });
       document.getElementById("legendaries").hidden = false;
       window.__summon = summon; // handle for console checks: __summon("kyogre")
-      btn.addEventListener("click", () => summon());
-      setInterval(() => { btn.disabled = busy(); }, 250);
+      setInterval(() => { for (const b of buttons) b.disabled = busy(); }, 250);
     },
   });
 } catch (e) {

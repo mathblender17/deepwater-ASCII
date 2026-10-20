@@ -45,3 +45,20 @@ Deno.test("after an appearance ends the next gap is 25-45 s", () => {
   assertEquals(s.update(24.9, run), null);
   assert(s.update(0.2, run) !== null);
 });
+
+import { pickCreature } from "./scheduler.ts";
+
+const all = [{ name: "gyarados", role: "visitor" as const }, { name: "lugia", role: "legendary" as const }, { name: "kyogre", role: "legendary" as const }];
+
+Deno.test("visitors and legendaries each get half of the appearances", () => {
+  assertEquals(pickCreature(() => 0.0, all), "gyarados");
+  assertEquals(pickCreature(() => 0.49, all), "gyarados");
+  assertEquals(pickCreature(() => 0.6, all), "lugia");
+  assertEquals(pickCreature(() => 0.9, all), "kyogre");
+});
+
+Deno.test("with only legendaries loaded they share every appearance", () => {
+  const legends = all.slice(1);
+  assertEquals(pickCreature(() => 0.2, legends), "lugia");
+  assertEquals(pickCreature(() => 0.7, legends), "kyogre");
+});
