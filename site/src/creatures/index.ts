@@ -5,6 +5,7 @@
 import type { Grid, Layer } from "../../../vendor-ascii-sharks/src/renderer.ts";
 import { type Colors, drawSprite, rgbOf } from "./draw.ts";
 import { BELLY, BODY, buildMask, FIN, MARKS, type Mask, type PaletteEntry } from "./mask.ts";
+import { leapAt, leapTarget } from "./leap.ts";
 import { riseAt } from "./rise.ts";
 import { clearZones, type Scene } from "./scene.ts";
 import { Scheduler } from "./scheduler.ts";
@@ -81,7 +82,11 @@ async function loadCreature(name: string, e: Entry, base: URL): Promise<Creature
 /** Where an appearance happens, chosen once when it starts. */
 type Placement = { a: Point; b: Point };
 
-function place(_c: Creature, view: View): Placement {
+function place(c: Creature, view: View): Placement {
+  if (c.motion === "leap") {
+    const a = { x: view.w * (0.3 + 0.4 * Math.random()), y: view.h * (0.35 + 0.3 * Math.random()) };
+    return { a, b: leapTarget(a, view, Math.random) };
+  }
   const a = { x: view.w * (1 / 3 + Math.random() / 3), y: view.h * (0.4 + 0.2 * Math.random()) };
   return { a, b: a };
 }
@@ -89,6 +94,8 @@ function place(_c: Creature, view: View): Placement {
 function sceneAt(c: Creature, t: number, p: Placement, view: View): Scene | null {
   const aspect = c.main ? c.main.h / c.main.w : 1;
   switch (c.motion) {
+    case "leap":
+      return leapAt(t, p.a, p.b, view, aspect);
     default:
       return riseAt(t, p.a, view, aspect);
   }
