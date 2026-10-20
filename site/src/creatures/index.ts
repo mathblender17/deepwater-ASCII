@@ -5,7 +5,8 @@
 import type { Grid, Layer } from "../../../vendor-ascii-sharks/src/renderer.ts";
 import { type Colors, drawCreature } from "./draw.ts";
 import { buildMask, type Mask } from "./mask.ts";
-import { type Frame, frameAt, nextGap } from "./timeline.ts";
+import { Scheduler } from "./scheduler.ts";
+import { type Frame, frameAt } from "./timeline.ts";
 
 type Ocean = {
   canvas: HTMLCanvasElement;
@@ -52,16 +53,26 @@ export async function mountCreatures(ocean: Ocean, opts: { packUrl: string; onRe
   if (breach && (!breach.w || breach.coverage > 0.9)) breach = null;
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const schedule = new Scheduler();
   let grid: Grid | null = null;
   let frame: Frame | null = null;
-  let active: { t: number; start: { x: number; y: number }; splashed: boolean } | null = null;
-  let countdown = nextGap(Math.random, true);
+  let start = { x: 0, y: 0 };
+  let splashed = false;
+  // The engine stops drawing when the hero scrolls away; appearances wait with it.
+  let onScreen = true;
+  new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; }).observe(ocean.canvas);
+  // Clear at once, so the engine's reduced-motion still frame never bakes in a half-drawn Lugia.
+  reduced.addEventListener("change", () => {
+    if (!reduced.matches) return;
+    frame = null;
+    ocean.setRepel(null);
+  });
 
   const layer = (depth: "under" | "over"): Layer => ({
     depth,
     draw(ctx, g) {
       grid = g;
-      if (!frame || frame.layer !== depth) return;
+      if (!frame || frame.layer !== depth || reduced.matches) return;
       const mask = frame.phase === "breach" && breach ? breach : pose;
       drawCreature(ctx, g, mask, frame, lugia.colors, document.documentElement.dataset.theme === "light");
     },
@@ -69,37 +80,40 @@ export async function mountCreatures(ocean: Ocean, opts: { packUrl: string; onRe
   ocean.addLayer(layer("under"));
   ocean.addLayer(layer("over"));
 
-  const begin = () => {
+  const place = () => {
     const r = ocean.canvas.getBoundingClientRect();
-    active = { t: 0, start: { x: r.width * (1 / 3 + Math.random() / 3), y: r.height * (0.4 + 0.2 * Math.random()) }, splashed: false };
+    start = { x: r.width * (1 / 3 + Math.random() / 3), y: r.height * (0.4 + 0.2 * Math.random()) };
+    splashed = false;
   };
 
   let last = performance.now();
+  let wasRunning = false;
   const tick = (now: number) => {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     requestAnimationFrame(tick);
-    if (document.hidden || reduced.matches) return;
-    if (!active) {
-      countdown -= dt;
-      if (countdown <= 0) begin();
+    const t = schedule.update(dt, { paused: document.hidden || !onScreen, reduced: reduced.matches });
+    if (t === null) {
+      if (wasRunning) { frame = null; ocean.setRepel(null); }
+      wasRunning = false;
       return;
     }
-    active.t += dt;
+    if (!wasRunning) place();
+    wasRunning = true;
     const r = ocean.canvas.getBoundingClientRect();
     const cw = grid?.cw ?? 12;
     const aspect = pose.h / pose.w;
-    frame = frameAt(active.t, active.start, { w: r.width, h: r.height, cw }, aspect);
+    frame = frameAt(t, start, { w: r.width, h: r.height, cw }, aspect);
     if (!frame) {
-      active = null;
+      schedule.finish();
       ocean.setRepel(null);
-      countdown = nextGap(Math.random, false);
+      wasRunning = false;
       return;
     }
     const half = (frame.widthCells * cw) / 2;
     ocean.setRepel(frame.phase === "deep" ? { x: frame.x, y: frame.y, r: half } : null);
-    if (frame.phase === "breach" && !active.splashed) {
-      active.splashed = true;
+    if (frame.phase === "breach" && !splashed) {
+      splashed = true;
       ocean.splash(frame.x, frame.y);
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2;
@@ -109,6 +123,5 @@ export async function mountCreatures(ocean: Ocean, opts: { packUrl: string; onRe
   };
   requestAnimationFrame(tick);
 
-  if (reduced.matches) return;
-  opts.onReady(() => { if (!active) begin(); }, () => !!active);
+  opts.onReady(() => { schedule.summon(reduced.matches); }, () => schedule.busy() || reduced.matches);
 }
