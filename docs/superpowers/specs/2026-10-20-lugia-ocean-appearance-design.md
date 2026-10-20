@@ -51,3 +51,7 @@ Later slices (out of scope here): more creatures (Kyogre, Rayquaza, Latios/Latia
 ## Revision — 2026-10-20: a clearer rise
 
 After seeing it running, the appearance became five phases (~9 s): **clear** 1.2 s (a zone 1.5× the underwater width opens and pushes every fish and shark out bodily) → **rise** 3 s (Lugia grows from a ~4-cell speck to 45 cells; the water inside darkens: deep inner disc + rippling cyan halo) → **breach** 0.8 s (foam ring and two followers burst outward; splashes around the disc edge) → **flight** 3 s (the disc and a corridor up to the top edge stay empty) → **settle** 1 s (zone and colour fade back). Zones are hard limits in the engine: anything inside is carried straight out each step.
+
+## Revision 2 — 2026-10-20: the circle, then Lugia
+
+Lugia is no longer visible underwater. The appearance is now (~8.1 s): **gather** 3.5 s — a circle forms on the water as a dot and widens (ease-in-out) to ~67 cells across, deep teal inside with a softly breathing cyan rim; a clear gap of 6 cells travels with its edge, so fish and sharks are pushed outward as it grows → **breach** 0.6 s — Lugia emerges in the centre at ~34 cells and swells to 47 with a soft ease-out while a pale foam ring and two followers spread from it → **flight** 3 s (path kept clear) → **settle** 1 s. Tone: surprising and pleasing, not in the face — nothing at full opacity, no hard pops.

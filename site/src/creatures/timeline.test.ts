@@ -1,41 +1,45 @@
 import { assert, assertAlmostEquals, assertEquals } from "jsr:@std/assert@1.0.8";
-import { BREACH, CLEAR, clearZones, DEEP, FLIGHT, frameAt, nextGap, SETTLE, TOTAL } from "./timeline.ts";
+import { BREACH, clearZones, discRadius, FLIGHT, frameAt, GAP_CELLS, GATHER, nextGap, SETTLE, TOTAL } from "./timeline.ts";
 
 const start = { x: 720, y: 450 };
 const view = { w: 1440, h: 900, cw: 12 };
 const aspect = 0.77;
 const at = (t: number) => frameAt(t, start, view, aspect);
-const RISE = CLEAR, BREACH_AT = CLEAR + DEEP, FLY_AT = BREACH_AT + BREACH, SETTLE_AT = FLY_AT + FLIGHT;
+const BREACH_AT = GATHER, FLY_AT = GATHER + BREACH, SETTLE_AT = FLY_AT + FLIGHT;
 
 Deno.test("phases run in order", () => {
-  assertEquals(at(0.5)?.phase, "clear");
-  assertEquals(at(RISE + 1)?.phase, "deep");
+  assertEquals(at(0.5)?.phase, "gather");
   assertEquals(at(BREACH_AT + 0.2)?.phase, "breach");
   assertEquals(at(FLY_AT + 0.5)?.phase, "flight");
   assertEquals(at(SETTLE_AT + 0.5)?.phase, "settle");
   assertEquals(at(TOTAL), null);
-  assertAlmostEquals(TOTAL, CLEAR + DEEP + BREACH + FLIGHT + SETTLE, 1e-9);
+  assertAlmostEquals(TOTAL, GATHER + BREACH + FLIGHT + SETTLE, 1e-9);
 });
 
-Deno.test("lugia is hidden while the water clears and settles", () => {
-  assertEquals(at(0.5)!.layer, null);
+Deno.test("lugia stays hidden while the circle forms and while the water settles", () => {
+  for (const t of [0, 1, 2, 3, BREACH_AT - 0.01]) assertEquals(at(t)!.layer, null, `visible at ${t}s`);
   assertEquals(at(SETTLE_AT + 0.5)!.layer, null);
 });
 
-Deno.test("deep is dim and under, flight is bright and over", () => {
-  const deep = at(RISE + 1)!, flight = at(FLY_AT + 1)!;
-  assertAlmostEquals(deep.brightness, 0.35, 0.01);
-  assertEquals(deep.layer, "under");
-  assertEquals(flight.brightness, 1);
-  assertEquals(flight.layer, "over");
+Deno.test("the circle grows from a dot to full size, then lugia emerges", () => {
+  const zones = [0, 0.8, 1.6, 2.4, BREACH_AT - 0.01].map((t) => at(t)!.zone);
+  assert(zones[0] <= 0.05, `starts at ${zones[0]}`);
+  for (let i = 1; i < zones.length; i++) assert(zones[i] > zones[i - 1], `zones ${zones}`);
+  assertAlmostEquals(at(BREACH_AT)!.zone, 1, 0.01);
+  assertEquals(at(BREACH_AT)!.layer, "over");
 });
 
-Deno.test("grows from a speck to past the screen", () => {
-  const ts = [RISE, RISE + 1.5, BREACH_AT, FLY_AT, FLY_AT + 1.5, SETTLE_AT - 0.05];
-  const widths = ts.map((t) => at(t)!.widthCells);
+Deno.test("lugia emerges at a modest size and swells in brightness", () => {
+  const pop = at(BREACH_AT)!;
+  assert(pop.widthCells >= 30 && pop.widthCells <= 40, `pops at ${pop.widthCells} cells`);
+  assert(pop.brightness < 1);
+  assertEquals(at(FLY_AT)!.brightness, 1);
+});
+
+Deno.test("grows past the screen after emerging", () => {
+  const widths = [BREACH_AT, BREACH_AT + 0.3, FLY_AT, FLY_AT + 1.5, SETTLE_AT - 0.05].map((t) => at(t)!.widthCells);
   for (let i = 1; i < widths.length; i++) assert(widths[i] > widths[i - 1], `widths ${widths}`);
-  assert(widths[0] <= 5, `starts at ${widths[0]} cells`);
-  assert(widths[widths.length - 1] >= 110, `ends at ${widths[widths.length - 1]} cells`);
+  assert(widths[widths.length - 1] >= 110);
 });
 
 Deno.test("ends off the top", () => {
@@ -49,36 +53,30 @@ Deno.test("grows toward the camera before leaving", () => {
   assert(f.widthCells > 70, `width ${f.widthCells}`);
 });
 
-Deno.test("the clear zone opens first and closes last", () => {
-  assertAlmostEquals(at(0)!.zone, 0, 0.01);
-  assertAlmostEquals(at(CLEAR)!.zone, 1, 0.01);
-  assertEquals(at(FLY_AT + 1)!.zone, 1);
-  assert(at(TOTAL - 0.01)!.zone < 0.05);
-});
-
-Deno.test("the water darkens as lugia rises and recovers after", () => {
-  assert(at(RISE + 0.2)!.tint < at(BREACH_AT - 0.1)!.tint);
+Deno.test("the water darkens as the circle forms and recovers after", () => {
+  assert(at(0.3)!.tint < at(BREACH_AT - 0.1)!.tint);
   assertAlmostEquals(at(BREACH_AT)!.tint, 1, 0.01);
   assert(at(TOTAL - 0.01)!.tint < 0.05);
 });
 
-Deno.test("the breach ring runs from the breach for two seconds", () => {
+Deno.test("the foam ring runs from the breach for two seconds", () => {
   assertEquals(at(BREACH_AT - 0.1)!.ring, null);
   assertAlmostEquals(at(BREACH_AT)!.ring!, 0, 0.01);
   assertAlmostEquals(at(BREACH_AT + 1)!.ring!, 0.5, 0.01);
   assertEquals(at(BREACH_AT + 2.1)!.ring, null);
 });
 
-Deno.test("clear zones: a disc, plus the path to the top during flight", () => {
+Deno.test("the clear zone is the circle plus an empty gap, growing with it", () => {
   const cw = view.cw;
-  assertEquals(clearZones(at(0)!, cw).length, 0);
-  const opening = clearZones(at(CLEAR / 2)!, cw);
-  assertEquals(opening.length, 1);
-  assertAlmostEquals(opening[0].r, 0.5 * 1.5 * (45 * cw) / 2, 1);
+  const mid = at(GATHER / 2)!;
+  const [disc] = clearZones(mid, cw);
+  assertAlmostEquals(disc.r, mid.zone * discRadius(cw) + GAP_CELLS * cw, 1);
+  assert(clearZones(at(0.2)!, cw)[0].r < clearZones(at(GATHER - 0.1)!, cw)[0].r);
+});
+
+Deno.test("lugia's path to the top stays clear in flight", () => {
   const flight = at(FLY_AT + 1)!;
-  const zones = clearZones(flight, cw);
-  assert(zones.length > 1);
-  // Every point straight above Lugia, up to the top edge, is inside some zone.
+  const zones = clearZones(flight, view.cw);
   for (let y = flight.y; y >= 0; y -= 20) {
     assert(zones.some((z) => Math.hypot(flight.x - z.x, y - z.y) <= z.r), `gap in the path at y=${y}`);
   }
