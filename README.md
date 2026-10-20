@@ -8,7 +8,7 @@ The landing page for [Ronin](https://github.com/mathblender17/Ronin), the rabbit
 
 ## Run
 
-**Live demo:** https://mathblender17.github.io/shark-ASCII-art---ronin-landing-page/
+**Live demo:** https://mathblender17.github.io/deepwater-ASCII/
 
 The page is static. Serve the project root and open `/site/` (the Pokémon load from `pokemon-pack/`, which needs a server; opened straight from disk you get the ocean without them):
 
