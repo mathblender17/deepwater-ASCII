@@ -1,6 +1,6 @@
 # Ronin landing page
 
-The landing page for [Ronin](https://github.com/mathblender17/Ronin), the rabbit hole explorer. The hero is a live ASCII ocean of sharks and fish you can steer from the **Tune** panel: species (or a mixed school), school size, a cursor that scares the fish or baits the sharks, and clicks that splash or drop food. Tune also switches each piece of on-screen UI on or off; **H** leaves only the ocean.
+The landing page for [Ronin](https://github.com/mathblender17/Ronin), the rabbit hole explorer. The hero is a live ASCII ocean of sharks and fish you can steer from the **Tune** panel: species (or a mixed school), school size, a cursor that scares the fish or baits the sharks, and clicks that splash or drop food. Tune also switches each piece of on-screen UI on or off; **H** leaves only the ocean. The sun/moon button beside it switches between dark and light.
 
 ## Run
 
