@@ -33,7 +33,9 @@ export async function mountCreatures(ocean: Ocean, opts: { packUrl: string; onRe
   let lugia: Entry, pose: Mask, breach: Mask | null = null;
   try {
     const packUrl = new URL(opts.packUrl, location.href);
-    const pack = await (await fetch(packUrl)).json();
+    const res = await fetch(packUrl);
+    if (!res.ok) throw new Error(`no pack at ${packUrl.pathname} (${res.status})`);
+    const pack = await res.json();
     if (!pack?.lugia?.pose || !pack.lugia.colors) throw new Error("pack.json has no lugia entry");
     lugia = pack.lugia;
     pose = await loadMask(new URL(lugia.pose, packUrl).href);
