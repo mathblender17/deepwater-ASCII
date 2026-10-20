@@ -3,13 +3,15 @@
  * markings, cropped to the creature. Works on transparent PNGs and on images
  * with a painted checkerboard "transparency".
  */
-export const EMPTY = 0, BODY = 1, BELLY = 2, MARKS = 3;
+export const EMPTY = 0, BODY = 1, BELLY = 2, MARKS = 3, FIN = 4;
 
 export type Mask = { w: number; h: number; px: Uint8Array; coverage: number };
+/** A source colour in the image and the region its pixels belong to. */
+export type PaletteEntry = { rgb: [number, number, number]; region: number };
 
 const lumOf = (r: number, g: number, b: number) => (0.3 * r + 0.59 * g + 0.11 * b) / 255;
 
-export function buildMask(rgba: Uint8ClampedArray, w: number, h: number): Mask {
+export function buildMask(rgba: Uint8ClampedArray, w: number, h: number, palette?: PaletteEntry[]): Mask {
   const n = w * h;
   let translucent = 0;
   for (let i = 0; i < n; i++) if (rgba[i * 4 + 3] < 250) translucent++;
@@ -63,11 +65,24 @@ export function buildMask(rgba: Uint8ClampedArray, w: number, h: number): Mask {
       const i = (y + y0) * w + (x + x0);
       if (reached[i]) continue;
       const r = rgba[i * 4], g = rgba[i * 4 + 1], b = rgba[i * 4 + 2];
+      if (palette?.length) {
+        px[y * mw + x] = nearest(palette, r, g, b);
+        continue;
+      }
       const lum = lumOf(r, g, b);
       px[y * mw + x] = lum < 0.45 && b - r > 30 ? MARKS : lum >= 0.45 && b - r > 45 ? BELLY : BODY;
     }
   }
   return { w: mw, h: mh, px, coverage: count / (mw * mh) };
+}
+
+function nearest(palette: PaletteEntry[], r: number, g: number, b: number) {
+  let best = palette[0].region, bestD = Infinity;
+  for (const p of palette) {
+    const d = (p.rgb[0] - r) ** 2 + (p.rgb[1] - g) ** 2 + (p.rgb[2] - b) ** 2;
+    if (d < bestD) { bestD = d; best = p.region; }
+  }
+  return best;
 }
 
 /** Square-window dilate (value 1) or erode (value 0). */
@@ -97,10 +112,10 @@ export function sampleCell(m: Mask, u0: number, v0: number, u1: number, v1: numb
   const xa = Math.max(0, Math.floor(u0 * m.w)), xb = Math.min(m.w, Math.max(xa + 1, Math.ceil(u1 * m.w)));
   const ya = Math.max(0, Math.floor(v0 * m.h)), yb = Math.min(m.h, Math.max(ya + 1, Math.ceil(v1 * m.h)));
   if (xa >= xb || ya >= yb) return { coverage: 0, region: EMPTY };
-  const counts = [0, 0, 0, 0];
+  const counts = [0, 0, 0, 0, 0];
   for (let y = ya; y < yb; y++) for (let x = xa; x < xb; x++) counts[m.px[y * m.w + x]]++;
   const total = (xb - xa) * (yb - ya);
   let region = EMPTY;
-  for (const k of [BODY, BELLY, MARKS]) if (counts[k] > (region ? counts[region] : 0)) region = k;
+  for (const k of [BODY, BELLY, MARKS, FIN]) if (counts[k] > (region ? counts[region] : 0)) region = k;
   return { coverage: (total - counts[EMPTY]) / total, region };
 }

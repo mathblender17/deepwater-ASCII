@@ -69,3 +69,12 @@ Deno.test("lavender-shaded body stays body, not belly", () => {
   const m = buildMask(image(40, 40, square(() => [215, 220, 242])), 40, 40);
   assertEquals(sampleCell(m, 0.3, 0.3, 0.7, 0.7).region, BODY);
 });
+
+Deno.test("palette assigns nearest region", () => {
+  // Left half blue, right half red, inside the outlined square.
+  const fill = (x: number): RGB => (x < 20 ? [30, 121, 184] : [200, 48, 74]);
+  const palette = [{ rgb: [30, 121, 184] as RGB, region: BODY }, { rgb: [200, 48, 74] as RGB, region: MARKS }, { rgb: [20, 20, 20] as RGB, region: BODY }];
+  const m = buildMask(image(40, 40, square((x) => fill(x))), 40, 40, palette);
+  assertEquals(sampleCell(m, 0.1, 0.3, 0.4, 0.7).region, BODY);
+  assertEquals(sampleCell(m, 0.6, 0.3, 0.9, 0.7).region, MARKS);
+});
