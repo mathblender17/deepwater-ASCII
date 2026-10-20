@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ronin — every question runs deep</title>
 <meta name="description" content="Ronin turns a question into a small, expandable map of ideas. Follow a branch, read its sources, and come back to the trail later.">
-<script>try { const t = localStorage.getItem("ronin-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}</script>
+<script>try { const t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("ronin-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
 <link rel="preconnect" href="https://api.fontshare.com">
 <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
 <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600&display=swap" rel="stylesheet">
