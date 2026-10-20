@@ -1,44 +1,50 @@
+import { discRadius, type Scene } from "./scene.ts";
+
 /**
  * One legendary appearance: a circle forms on the water and widens from a dot,
  * Lugia emerges from it with a splash, flies up past the camera, and the water settles.
  */
 export const GATHER = 3.5, BREACH = 0.6, FLIGHT = 3, SETTLE = 1;
 export const TOTAL = GATHER + BREACH + FLIGHT + SETTLE;
-/** Empty band kept between the circle and everything else, in cells. */
-export const GAP_CELLS = 6;
+export const RISE_TOTAL = TOTAL;
 const RING_SECONDS = 2;
 
-/** Radius of the fully formed circle, px (about 67 cells across). */
-export const discRadius = (cw: number) => 1.5 * (45 * cw) / 2;
-
-export type Frame = {
-  phase: "gather" | "breach" | "flight" | "settle";
-  /** Centre of the sprite, px. */
-  x: number;
-  y: number;
-  /** Centre of the circle on the water, px. */
-  cx: number;
-  cy: number;
-  widthCells: number;
-  brightness: number;
-  /** Vertical scale for the wing beat, 0.92–1. */
-  squash: number;
-  /** null while Lugia itself is not drawn. */
-  layer: "under" | "over" | null;
-  /** 0–1: the circle's radius as a share of discRadius. */
-  zone: number;
-  /** 0–1: how strongly the water inside is tinted. */
-  tint: number;
-  /** 0–1 progress of the foam ring after the breach, or null. */
-  ring: number | null;
-};
 
 const beat = (t: number, hz: number) => 0.92 + 0.08 * (0.5 + 0.5 * Math.cos(2 * Math.PI * hz * t));
 const easeInOut = (k: number) => 0.5 - 0.5 * Math.cos(Math.PI * k);
 const easeOut = (k: number) => 1 - (1 - k) ** 3;
 
 /** `aspect` is the mask's height / width. Returns null once the appearance is over. */
-export function frameAt(t: number, start: { x: number; y: number }, view: { w: number; h: number; cw: number }, aspect: number): Frame | null {
+type Frame = {
+  phase: "gather" | "breach" | "flight" | "settle";
+  x: number; y: number; cx: number; cy: number; widthCells: number; brightness: number; squash: number;
+  layer: "under" | "over" | null; zone: number; tint: number; ring: number | null;
+};
+
+/** Lugia's appearance as a scene. */
+export function riseAt(t: number, start: { x: number; y: number }, view: { w: number; h: number; cw: number }, aspect: number): Scene | null {
+  const f = frameAt(t, start, view, aspect);
+  if (!f) return null;
+  const disc = discRadius(view.cw);
+  const path: Scene["path"] = [];
+  if (f.phase === "flight") {
+    const r = (f.widthCells * view.cw) / 2 * 0.9;
+    for (let y = f.y; y > -r; y -= r) path.push({ x: f.x, y, r });
+  }
+  return {
+    phase: f.phase,
+    circles: f.zone > 0 ? [{ x: f.cx, y: f.cy, r: f.zone * disc, tint: f.tint }] : [],
+    foams: f.ring === null ? [] : [{ x: f.cx, y: f.cy, progress: f.ring, reach: disc * 2.2 }],
+    sprite: f.layer === null ? null : {
+      pose: f.phase === "breach" ? "breach" : "main", x: f.x, y: f.y, widthCells: f.widthCells,
+      brightness: f.brightness, squash: f.squash, angle: 0, layer: f.layer,
+    },
+    serpent: null,
+    path,
+  };
+}
+
+function frameAt(t: number, start: { x: number; y: number }, view: { w: number; h: number; cw: number }, aspect: number): Frame | null {
   if (t < 0 || t >= TOTAL) return null;
   const flyAt = GATHER + BREACH, settleAt = flyAt + FLIGHT;
   const drift = 1.5 * view.cw * Math.sin(t * 0.7);
@@ -71,20 +77,4 @@ export function frameAt(t: number, start: { x: number; y: number }, view: { w: n
   }
   const k = (t - settleAt) / SETTLE;
   return { ...base, phase: "settle", widthCells: 125, y: endY, brightness: 1, squash: 1, layer: null, zone: 1 - k, tint: 1 - k };
-}
-
-/** Areas fish and sharks are pushed out of: the circle plus an empty gap, and Lugia's path to the top in flight. */
-export function clearZones(f: Frame, cw: number): { x: number; y: number; r: number }[] {
-  if (f.zone <= 0) return [];
-  const zones = [{ x: f.cx, y: f.cy, r: f.zone * discRadius(cw) + GAP_CELLS * cw }];
-  if (f.phase === "flight") {
-    const r = (f.widthCells * cw) / 2 * 0.9;
-    for (let y = f.y; y > -r; y -= r) zones.push({ x: f.x, y, r });
-  }
-  return zones;
-}
-
-/** Seconds until the next appearance: the first comes quickly, later ones are rarer. */
-export function nextGap(rand: () => number, first: boolean): number {
-  return first ? 8 + 4 * rand() : 25 + 20 * rand();
 }

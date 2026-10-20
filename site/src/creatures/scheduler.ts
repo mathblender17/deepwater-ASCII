@@ -1,5 +1,4 @@
 /** When appearances happen: one at a time, only while the ocean is visible, never under reduced motion. */
-import { nextGap } from "./timeline.ts";
 
 export class Scheduler {
   private t: number | null = null;
@@ -41,4 +40,9 @@ export class Scheduler {
   busy() {
     return this.t !== null;
   }
+}
+
+/** Seconds until the next appearance: the first comes quickly, later ones are rarer. */
+export function nextGap(rand: () => number, first: boolean): number {
+  return first ? 8 + 4 * rand() : 25 + 20 * rand();
 }

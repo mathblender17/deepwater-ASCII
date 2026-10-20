@@ -644,7 +644,7 @@ try {
     onReady(summon, busy) {
       const btn = document.getElementById("summon");
       document.getElementById("legendaries").hidden = false;
-      btn.addEventListener("click", summon);
+      btn.addEventListener("click", () => summon());
       setInterval(() => { btn.disabled = busy(); }, 250);
     },
   });

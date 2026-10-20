@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "jsr:@std/assert@1.0.8";
 import { Scheduler } from "./scheduler.ts";
-import { TOTAL } from "./timeline.ts";
+import { TOTAL } from "./rise.ts";
 
 const run = { paused: false, reduced: false };
 
