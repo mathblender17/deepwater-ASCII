@@ -47,3 +47,7 @@ Later slices (out of scope here): more creatures (Kyogre, Rayquaza, Latios/Latia
 - **Self-checks:** Lugia's cut-out covers 35–60% of its bounding box; all three regions present; the timeline's phases run in order and end off-screen.
 - **Browser checks:** summon, then screenshots in deep, breach and flight phases in dark and light; fish scatter; missing pack handled; reduced motion skips appearances.
 - **Before commit:** git still ignores `pokemon-pack/`; the public build is unchanged without the pack.
+
+## Revision — 2026-10-20: a clearer rise
+
+After seeing it running, the appearance became five phases (~9 s): **clear** 1.2 s (a zone 1.5× the underwater width opens and pushes every fish and shark out bodily) → **rise** 3 s (Lugia grows from a ~4-cell speck to 45 cells; the water inside darkens: deep inner disc + rippling cyan halo) → **breach** 0.8 s (foam ring and two followers burst outward; splashes around the disc edge) → **flight** 3 s (the disc and a corridor up to the top edge stay empty) → **settle** 1 s (zone and colour fade back). Zones are hard limits in the engine: anything inside is carried straight out each step.

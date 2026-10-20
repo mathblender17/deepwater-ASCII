@@ -98,8 +98,8 @@ export class World {
   food: { x: number; y: number; until: number; pulseAt: number }[] = [];
   /** The original hero kept a centred headline clear of sharks; a page with no centred text can turn it off. */
   keepCenterClear = true;
-  /** A zone fish flee and sharks steer around, e.g. a creature rising from the deep. */
-  repel: { x: number; y: number; r: number } | null = null;
+  /** Zones fish flee and sharks steer clear of, e.g. the water around a creature rising from the deep. */
+  repel: { x: number; y: number; r: number }[] = [];
 
   /** Fish neighbourhood radius; the spatial hash bucket size matches it. */
   private perception = 60;
@@ -431,8 +431,7 @@ export class World {
         }
       }
 
-      if (this.repel) {
-        const { x: rx, y: ry, r: rr } = this.repel;
+      for (const { x: rx, y: ry, r: rr } of this.repel) {
         const dx = f.x - rx;
         const dy = f.y - ry;
         const d = Math.hypot(dx, dy);
@@ -499,6 +498,16 @@ export class World {
       f.phase += dt * (7 + Math.hypot(f.vx, f.vy) * 0.12);
       f.x = clamp(f.x + f.vx * dt, -60, W + 60);
       f.y = clamp(f.y + f.vy * dt, -60, H + 60);
+      // Clear zones are absolute: anything inside is carried straight out.
+      for (const z of this.repel) {
+        const ox = f.x - z.x, oy = f.y - z.y;
+        const d = Math.hypot(ox, oy) || 1;
+        if (d < z.r + 2) {
+          const step = Math.min(z.r + 2 - d, 600 * dt);
+          f.x += (ox / d) * step;
+          f.y += (oy / d) * step;
+        }
+      }
     }
   }
 
@@ -579,13 +588,14 @@ export class World {
         }
       }
 
-      if (this.repel) {
-        const ox = hx - this.repel.x;
-        const oy = hy - this.repel.y;
+      for (const z of this.repel) {
+        const ox = hx - z.x;
+        const oy = hy - z.y;
         const d = Math.hypot(ox, oy);
-        const range = this.repel.r * 1.3;
+        // The snout keeps a body length clear, so the whole shark ends up outside the zone.
+        const range = z.r + L * 0.8;
         if (d < range && d > 1e-3) {
-          const w = (1 - d / range) * 3;
+          const w = (1 - d / range) * 7;
           dx += (ox / d) * w;
           dy += (oy / d) * w;
         }
@@ -643,6 +653,28 @@ export class World {
         nodes[k * 2] = px + Math.cos(angle) * seg;
         nodes[k * 2 + 1] = py + Math.sin(angle) * seg;
         prevAngle = angle;
+      }
+
+      // Clear zones are absolute: a shark with any part of its body inside is carried
+      // straight out, as one piece, away from the zone's centre.
+      for (const z of this.repel) {
+        let worst = 0;
+        let mx = 0, my = 0;
+        for (let k = 0; k < SHARK_NODES; k++) {
+          mx += nodes[k * 2] / SHARK_NODES;
+          my += nodes[k * 2 + 1] / SHARK_NODES;
+          // +2 px so its own swimming can't carry it back across the edge this step.
+          worst = Math.max(worst, z.r + 2 - Math.hypot(nodes[k * 2] - z.x, nodes[k * 2 + 1] - z.y));
+        }
+        if (worst <= 0) continue;
+        const ox = mx - z.x, oy = my - z.y;
+        const d = Math.hypot(ox, oy);
+        const ux = d > 1e-3 ? ox / d : 1, uy = d > 1e-3 ? oy / d : 0;
+        const step = Math.min(worst, 520 * dt);
+        for (let k = 0; k < SHARK_NODES; k++) {
+          nodes[k * 2] += ux * step;
+          nodes[k * 2 + 1] += uy * step;
+        }
       }
 
       // Feed.

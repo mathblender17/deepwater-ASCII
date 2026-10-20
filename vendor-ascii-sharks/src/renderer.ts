@@ -268,8 +268,11 @@ export function paintGrid(g: CanvasRenderingContext2D, W: number, H: number, cw:
 
 /** The cell grid as an extra layer sees it. */
 export type Grid = { cw: number; ch: number; cols: number; rows: number; t: number };
-/** Something drawn on the grid by the page: "under" goes beneath the sharks, "over" on top of everything. */
-export type Layer = { depth: "under" | "over"; draw(ctx: CanvasRenderingContext2D, grid: Grid): void };
+/**
+ * Something drawn on the grid by the page: "water" tints the sea beneath fish and sharks,
+ * "under" goes beneath the sharks, "over" on top of everything.
+ */
+export type Layer = { depth: "water" | "under" | "over"; draw(ctx: CanvasRenderingContext2D, grid: Grid): void };
 
 export class AsciiRenderer {
   layers: Layer[] = [];
@@ -415,6 +418,8 @@ export class AsciiRenderer {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(this.bg, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const grid: Grid = { cw: this.cw, ch, cols, rows: this.rows, t };
+    for (const l of this.layers) if (l.depth === "water") l.draw(ctx, grid);
 
     this.markFish(world);
     this.drawDots(t);
@@ -425,7 +430,6 @@ export class AsciiRenderer {
 
     this.drawHeat();
     this.drawFish();
-    const grid: Grid = { cw: this.cw, ch, cols, rows: this.rows, t };
     for (const l of this.layers) if (l.depth === "under") l.draw(ctx, grid);
     this.drawSharks(t);
     for (const l of this.layers) if (l.depth === "over") l.draw(ctx, grid);

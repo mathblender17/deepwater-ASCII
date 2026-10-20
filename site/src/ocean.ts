@@ -35,12 +35,12 @@ export function specs({ kind, count }: Roster): SharkSpec[] {
   }));
 }
 
-export type Repel = { x: number; y: number; r: number } | null;
+export type Repel = { x: number; y: number; r: number }[];
 
 export function mountOcean(canvas: HTMLCanvasElement, roster: Roster, interaction: Interaction) {
   // Kept here so they survive the engine restarts that roster changes cause.
   const layers: Layer[] = [];
-  let repel: Repel = null;
+  let repel: Repel = [];
   const start = () => {
     const e = new OceanEngine(canvas, specs(roster));
     e.setKeepCenterClear(false);

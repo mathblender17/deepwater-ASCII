@@ -59,8 +59,8 @@ export class OceanEngine {
     this.renderer.layers.push(layer);
   }
 
-  setRepel(r: World["repel"]) {
-    this.world.repel = r;
+  setRepel(zones: World["repel"]) {
+    this.world.repel = zones;
   }
 
   splash(x: number, y: number) {

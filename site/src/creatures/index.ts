@@ -6,12 +6,13 @@ import type { Grid, Layer } from "../../../vendor-ascii-sharks/src/renderer.ts";
 import { type Colors, drawCreature } from "./draw.ts";
 import { buildMask, type Mask } from "./mask.ts";
 import { Scheduler } from "./scheduler.ts";
-import { type Frame, frameAt } from "./timeline.ts";
+import { clearZones, type Frame, frameAt } from "./timeline.ts";
+import { discRadius, drawWater } from "./water.ts";
 
 type Ocean = {
   canvas: HTMLCanvasElement;
   addLayer(layer: Layer): void;
-  setRepel(r: { x: number; y: number; r: number } | null): void;
+  setRepel(zones: { x: number; y: number; r: number }[]): void;
   splash(x: number, y: number): void;
 };
 type Entry = { pose: string; breach?: string; colors: Colors };
@@ -65,16 +66,22 @@ export async function mountCreatures(ocean: Ocean, opts: { packUrl: string; onRe
   reduced.addEventListener("change", () => {
     if (!reduced.matches) return;
     frame = null;
-    ocean.setRepel(null);
+    ocean.setRepel([]);
   });
 
   const layer = (depth: "under" | "over"): Layer => ({
     depth,
     draw(ctx, g) {
       grid = g;
-      if (!frame || frame.layer !== depth || reduced.matches) return;
+      if (!frame || !frame.layer || frame.layer !== depth || reduced.matches) return;
       const mask = frame.phase === "breach" && breach ? breach : pose;
       drawCreature(ctx, g, mask, frame, lugia.colors, document.documentElement.dataset.theme === "light");
+    },
+  });
+  ocean.addLayer({
+    depth: "water",
+    draw(ctx, g) {
+      if (frame && !reduced.matches) drawWater(ctx, g, frame, document.documentElement.dataset.theme === "light");
     },
   });
   ocean.addLayer(layer("under"));
@@ -94,7 +101,7 @@ export async function mountCreatures(ocean: Ocean, opts: { packUrl: string; onRe
     requestAnimationFrame(tick);
     const t = schedule.update(dt, { paused: document.hidden || !onScreen, reduced: reduced.matches });
     if (t === null) {
-      if (wasRunning) { frame = null; ocean.setRepel(null); }
+      if (wasRunning) { frame = null; ocean.setRepel([]); }
       wasRunning = false;
       return;
     }
@@ -106,18 +113,19 @@ export async function mountCreatures(ocean: Ocean, opts: { packUrl: string; onRe
     frame = frameAt(t, start, { w: r.width, h: r.height, cw }, aspect);
     if (!frame) {
       schedule.finish();
-      ocean.setRepel(null);
+      ocean.setRepel([]);
       wasRunning = false;
       return;
     }
-    const half = (frame.widthCells * cw) / 2;
-    ocean.setRepel(frame.phase === "deep" ? { x: frame.x, y: frame.y, r: half } : null);
+    ocean.setRepel(clearZones(frame, cw));
     if (frame.phase === "breach" && !splashed) {
+      // The breach shoves the water outward: a burst at the centre and around the disc's edge.
       splashed = true;
-      ocean.splash(frame.x, frame.y);
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2;
-        ocean.splash(frame.x + Math.cos(a) * half, frame.y + Math.sin(a) * half * aspect);
+      const R = discRadius(cw);
+      ocean.splash(frame.cx, frame.cy);
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2;
+        ocean.splash(frame.cx + Math.cos(a) * R, frame.cy + Math.sin(a) * R);
       }
     }
   };
