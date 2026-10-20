@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ronin — every question runs deep</title>
+<meta name="description" content="Ronin turns a question into a small, expandable map of ideas. Follow a branch, read its sources, and come back to the trail later.">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- taste-skill-ignore: Geist Mono is only the canvas's glyph source for the ASCII ocean; no page text uses it. -->
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@600&display=swap" rel="stylesheet"><!-- taste-skill-ignore: glyph source for the ASCII canvas art, not text -->
+<style>
+:root {
+  /* Colours taken from the ocean itself: the engine's black water, shark-skin grey, the cyan wake. */
+  --bg: #050607;
+  --surface: #121518;
+  --surface-2: #1b1f23;
+  --ink: #eef1f3;
+  --muted: #a2abb2;
+  --field: #d6dadd;
+  --field-ink: #070809;
+  --field-muted: #3a4147;
+  --accent: #6ee6ff;
+  --accent-ink: #031014;
+
+  --font: "Switzer", "Helvetica Neue", Arial, sans-serif;
+  --step-small: 1rem;
+  --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.5rem);
+  --step-head: clamp(2.25rem, 1.2rem + 4.4vw, 5.25rem);
+  --step-display: clamp(4.25rem, 9vw, 9.5rem);
+
+  --margin: clamp(20px, 2.4vw, 36px);
+  --gap: clamp(120px, 14vw, 200px);
+  --radius: 14px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--step-body);
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img, video { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+h1, h2, h3, p, figure, dl, dd { margin: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.head {
+  font-weight: 600;
+  font-size: var(--step-head);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5em;
+  min-height: 46px; padding: 0 22px;
+  border: 0; border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink);
+  font: 500 var(--step-small)/1 var(--font); letter-spacing: 0;
+  text-decoration: none; cursor: pointer;
+  transition: transform 220ms var(--ease-out), background-color 220ms var(--ease-out);
+}
+.btn:hover { transform: translateY(-2px); background: #9ff0ff; }
+.btn:active { transform: translateY(0) scale(0.97); }
+.btn .arrow { transition: transform 220ms var(--ease-out); }
+.btn:hover .arrow { transform: translateX(3px); }
+
+.link {
+  text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 0.22em;
+  transition: color 200ms, text-underline-offset 200ms var(--ease-out);
+}
+.link:hover { text-underline-offset: 0.34em; }
+
+/* ---------- nav ---------- */
+.nav {
+  position: absolute; inset: 0 0 auto 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 24px var(--margin);
+}
+.wordmark { font-weight: 600; font-size: var(--step-body); letter-spacing: -0.03em; text-decoration: none; }
+.nav ul { display: flex; gap: 28px; list-style: none; margin: 0; padding: 0; font-size: var(--step-small); }
+.nav ul a { text-decoration: none; color: var(--muted); transition: color 200ms; }
+.nav ul a:hover { color: var(--ink); }
+
+/* ---------- hero: the ocean first, one line, everything else in Tune ---------- */
+.hero {
+  position: relative; min-height: 100svh; overflow: hidden;
+  background: #000;
+}
+.hero canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  font-family: "Geist Mono", ui-monospace, Menlo, monospace; /* taste-skill-ignore: the ASCII art is drawn with these glyphs */
+}
+.hero h1 {
+  position: absolute; z-index: 2; left: var(--margin); bottom: var(--margin);
+  max-width: calc(100% - 2 * var(--margin) - 140px);
+  font-weight: 600; font-size: clamp(2rem, 3.6vw, 4rem);
+  line-height: 1; letter-spacing: -0.04em;
+}
+.hero h1 .line { display: block; overflow: hidden; padding-bottom: 0.08em; text-wrap: balance; }
+.hero h1 .line > span { text-wrap: balance; }
+.hero h1 .line > span { display: inline-block; }
+
+/* Parts the visitor can switch off from Tune. */
+@keyframes fade-in { from { opacity: 0; } }
+[data-part] { animation: fade-in 320ms var(--ease-out); }
+.hide-headline [data-part~=headline],
+.hide-menu [data-part~=menu],
+.hide-now [data-part~=now],
+.zen [data-part] { display: none; }
+
+.tune-btn {
+  position: absolute; z-index: 6; right: var(--margin); bottom: var(--margin);
+  display: inline-flex; align-items: center; gap: 10px;
+  height: 46px; padding: 0 18px; border: 0; border-radius: 999px;
+  background: var(--surface-2); color: var(--ink);
+  font: 500 var(--step-small)/1 var(--font); cursor: pointer;
+  transition: background-color 200ms, opacity 320ms, transform 220ms var(--ease-out);
+}
+.tune-btn:hover { background: #262c31; transform: translateY(-2px); }
+.tune-btn:active { transform: scale(0.97); }
+.tune-btn svg { width: 18px; height: 18px; }
+.zen .tune-btn { opacity: 0.28; }
+.zen .tune-btn:hover, .zen .tune-btn:focus-visible { opacity: 1; }
+
+/* The Tune panel is a real floating menu, so it is the one thing on the page with a shadow. */
+.tune {
+  position: absolute; z-index: 6; right: var(--margin); bottom: calc(var(--margin) + 58px);
+  width: 320px; max-width: calc(100% - 2 * var(--margin));
+  padding: 8px; border-radius: 20px;
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55); /* taste-skill-ignore: floating menu */
+  font-size: var(--step-small); line-height: 1.3;
+  display: none; transform-origin: 100% 100%;
+}
+.tune-open .tune { display: block; animation: tune-in 260ms var(--ease-out); }
+@keyframes tune-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+.tune h2 { padding: 12px 14px 6px; font-size: var(--step-small); font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.tune .group + h2 { margin-top: 6px; }
+.row {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  min-height: 52px; padding: 0 14px; border-radius: 12px;
+  transition: background-color 160ms;
+}
+.row:hover { background: var(--surface-2); }
+.row .val { color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 6px; }
+.row input[type=range] { width: 120px; accent-color: var(--accent); height: 28px; margin: 0; cursor: pointer; }
+.row button.species {
+  all: unset; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; font-weight: 500;
+  padding: 6px 10px; margin-right: -10px; border-radius: 8px;
+}
+.row button.species:hover { background: #262c31; }
+.row button.species:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; padding: 3px; border-radius: 999px; background: #262c31; }
+.seg button { all: unset; cursor: pointer; padding: 6px 12px; border-radius: 999px; color: var(--muted); transition: background-color 160ms, color 160ms; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed=true] { background: var(--ink); color: var(--bg); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row kbd { font: inherit; color: var(--muted); margin-left: 6px; }
+.switch {
+  position: relative; flex: none; width: 44px; height: 26px; border: 0; padding: 0; border-radius: 999px;
+  background: #343b41; cursor: pointer; transition: background-color 220ms;
+}
+.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--ink); transition: transform 260ms var(--ease-out);
+}
+.switch[aria-checked=true] { background: var(--accent); }
+.switch[aria-checked=true]::after { transform: translateX(18px); background: var(--accent-ink); }
+
+/* ---------- meaning (pale field) ---------- */
+.meaning {
+  position: relative; background: var(--field); color: var(--field-ink);
+  padding: var(--gap) var(--margin) 120px;
+  display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 24px;
+  overflow: hidden;
+}
+.meaning h2 {
+  grid-column: 1 / 10; grid-row: 1; position: relative; z-index: 2;
+  font-size: var(--step-display);
+}
+.meaning h2 .l2 { display: block; padding-left: 18%; }
+.meaning .wave {
+  grid-column: 7 / 13; grid-row: 1 / 3; margin-right: calc(-1 * var(--margin));
+  margin-top: clamp(80px, 9vw, 150px);
+}
+.meaning .wave img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: 0% 50%; }
+.meaning .wave figcaption { padding-right: var(--margin); }
+.meaning .copy { grid-column: 1 / 6; grid-row: 2 / 4; margin-top: 64px; align-self: start; }
+.meaning .copy p { font-size: var(--step-lead); line-height: 1.4; }
+.meaning .copy p + p { margin-top: 22px; font-size: var(--step-body); line-height: 1.55; }
+.kanji { font-weight: 500; }
+.meaning .bridge { margin-top: 72px; width: 82%; }
+.meaning .bridge img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }
+.meaning .pair-note { grid-column: 8 / 13; grid-row: 3; margin-top: 72px; }
+.meaning .pair-note p { font-size: var(--step-lead); line-height: 1.4; max-width: 30ch; }
+figcaption { margin-top: 12px; font-size: var(--step-small); color: var(--field-muted); }
+
+/* ---------- now building ---------- */
+.now { padding: 160px var(--margin) var(--gap); display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 24px; align-items: center; }
+.now .text { grid-column: 1 / 7; }
+.now h2 { max-width: 11ch; }
+.now .text > p { margin-top: 32px; max-width: 36ch; font-size: var(--step-lead); line-height: 1.4; }
+.now dl { margin-top: 48px; display: grid; grid-template-columns: max-content 1fr; gap: 14px 40px; font-size: var(--step-body); }
+.now dt { color: var(--muted); }
+.now dd { font-weight: 500; }
+.now .actions { margin-top: 48px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+.now .plate { grid-column: 8 / 13; }
+.now .plate img { width: 100%; aspect-ratio: 5 / 7; object-fit: cover; background: var(--surface); }
+.now .plate figcaption { color: var(--muted); }
+.url {
+  display: block; margin-top: 18px; font-size: var(--step-small); color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+/* ---------- how we work ---------- */
+.how { display: grid; grid-template-columns: 1fr 1fr; min-height: 88svh; }
+.how-clause { background: var(--surface); padding: 64px var(--margin); display: flex; flex-direction: column; justify-content: space-between; gap: 48px; }
+.how-clause .label { font-size: var(--step-small); color: var(--muted); }
+.how h2 { max-width: 12ch; min-height: 2em; transition: opacity 200ms; }
+.how-clause .desc { max-width: 38ch; color: var(--ink); min-height: 4.6em; transition: opacity 200ms; }
+.how-stage { position: relative; overflow: hidden; display: grid; place-items: center; padding: 64px var(--margin); background: #0a1a22; }
+.how-stage video, .how-stage .poster {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.55) saturate(0.8);
+}
+.slider { grid-column: 1 / -1; background: var(--surface); padding: 0 var(--margin) 56px; }
+.slider input { width: 100%; height: 40px; margin: 0; appearance: none; -webkit-appearance: none; background: transparent; cursor: pointer; }
+.track { position: relative; }
+.track::before, .track .fill { content: ""; position: absolute; left: 0; top: 16px; height: 8px; pointer-events: none; }
+.track::before { right: 0; background: #30373d; }
+.track .fill { width: var(--fill, 0%); background: var(--ink); transition: width 200ms var(--ease-out); }
+.slider input { position: relative; }
+.slider input::-webkit-slider-runnable-track { height: 8px; background: transparent; }
+.slider input::-moz-range-track { height: 8px; background: transparent; }
+.slider input::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; margin-top: -12px; background: var(--accent); border: 0; border-radius: 0; transition: transform 160ms var(--ease-out); }
+.slider input::-moz-range-thumb { width: 32px; height: 32px; background: var(--accent); border: 0; border-radius: 0; }
+.slider input:active::-webkit-slider-thumb { transform: scale(1.15); }
+.stops { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 14px; list-style: none; padding: 0; }
+.stops li { color: var(--muted); transition: color 200ms; }
+.stops li:nth-child(2) { text-align: center; padding-right: 8%; }
+.stops li:nth-child(3) { text-align: center; padding-left: 8%; }
+.stops li:last-child { text-align: right; }
+.stops li[aria-current=step] { color: var(--ink); font-weight: 500; }
+.stops button { all: unset; cursor: pointer; }
+.stops button:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* A ticket from the build log: the product's own UI, so it keeps its own panel and radius. */
+.ticket {
+  position: relative; z-index: 1; width: min(440px, 100%);
+  background: #f4f6f7; color: #0b0d0f; border-radius: var(--radius); padding: 22px 24px 24px;
+  font-size: var(--step-small); line-height: 1.45;
+}
+.ticket header { display: flex; justify-content: space-between; align-items: center; color: #5b646b; }
+.status { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 999px; background: #e3e8eb; color: #0b0d0f; font-weight: 500; }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: var(--c, #8a949b); }
+.ticket h3 { margin-top: 16px; font-size: var(--step-lead); font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.ticket ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
+.ticket li { display: flex; gap: 10px; align-items: flex-start; }
+.ticket li .box { flex: none; width: 18px; height: 18px; margin-top: 2px; border-radius: 5px; background: #dde3e6; display: grid; place-items: center; color: #fff; font-size: 12px; }
+.ticket li.done .box { background: #0b0d0f; }
+.ticket li.done .box::after { content: ""; width: 5px; height: 9px; margin-top: -2px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.ticket li.done span:last-child { color: #6d767c; text-decoration: line-through; }
+.ticket footer { margin-top: 20px; display: flex; justify-content: space-between; color: #5b646b; font-variant-numeric: tabular-nums; }
+.ticket .body { transition: opacity 200ms; }
+
+/* ---------- next ---------- */
+.next { position: relative; padding: var(--gap) 0 0; }
+.next .intro { padding: 0 var(--margin); display: grid; grid-template-columns: repeat(12, 1fr); column-gap: 24px; align-items: end; }
+.next h2 { grid-column: 1 / 8; }
+.next .intro p { grid-column: 8 / 13; font-size: var(--step-lead); line-height: 1.4; }
+.next figure { margin-top: 64px; overflow: hidden; }
+.next figure img { width: 100%; height: auto; transform-origin: 50% 60%; will-change: transform; }
+.next figcaption { padding: 0 var(--margin); color: var(--muted); }
+
+/* ---------- cta ---------- */
+.cta { padding: var(--gap) var(--margin); }
+.cta form { font-weight: 600; font-size: var(--step-head); line-height: 1.12; letter-spacing: -0.04em; max-width: 14em; }
+.cta label { display: inline; }
+.cta input[type=email] {
+  font: inherit; letter-spacing: -0.02em; color: var(--ink);
+  width: 7.4em; height: 1.08em; padding: 0 0.22em; vertical-align: -0.12em;
+  border: 0; border-radius: var(--radius); background: var(--surface-2);
+  transition: background-color 200ms;
+}
+.cta input[type=email]::placeholder { color: #69737a; }
+.cta input[type=email]:focus { background: #262c31; outline: 2px solid var(--accent); outline-offset: 2px; }
+.cta button {
+  font: inherit; letter-spacing: inherit; height: 1.08em; padding: 0 0.28em; vertical-align: -0.12em;
+  border: 0; border-radius: var(--radius); background: var(--accent); color: var(--accent-ink); cursor: pointer;
+  transition: transform 220ms var(--ease-out), background-color 200ms;
+}
+.cta button:hover { background: #9ff0ff; transform: translateY(-3px); }
+.cta button:active { transform: scale(0.97); }
+.cta .after { margin-top: 32px; color: var(--muted); max-width: 52ch; }
+
+/* ---------- footer ---------- */
+.foot {
+  min-height: 90svh; background: var(--accent); color: var(--accent-ink);
+  padding: 40px var(--margin) 32px; display: flex; flex-direction: column; justify-content: space-between; gap: 64px;
+}
+.foot .top { display: flex; justify-content: space-between; gap: 32px; font-size: var(--step-small); }
+.foot .notes { display: grid; grid-template-columns: repeat(3, minmax(0, 18em)); gap: 32px; }
+.foot .notes p:first-child { font-weight: 600; }
+.foot h2 { font-size: var(--step-small); font-weight: 500; letter-spacing: 0; margin-bottom: 16px; }
+.mail {
+  display: block; font-weight: 600; font-size: var(--step-display); line-height: 0.92; letter-spacing: -0.055em;
+  text-decoration: none; transition: opacity 200ms;
+}
+.mail span { display: block; }
+.mail:hover { opacity: 0.72; }
+.foot .meta { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 24px; font-size: var(--step-small); line-height: 1.45; }
+.foot .meta > :nth-child(2) { text-align: center; }
+.foot .meta > :last-child { text-align: right; }
+.foot .meta a { text-decoration: underline; text-underline-offset: 0.2em; }
+
+/* ---------- entrances ---------- */
+.js .rise { opacity: 0; transform: translateY(24px); transition: opacity 800ms var(--ease-out), transform 800ms var(--ease-out); transition-delay: calc(var(--i, 0) * 80ms); }
+.js .rise.in { opacity: 1; transform: none; }
+.js .hero h1 .line > span { transform: translateY(105%); transition: transform 950ms var(--ease-out); }
+.js .hero.ready h1 .line > span { transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .js .rise, .js .hero h1 .line > span { opacity: 1 !important; transform: none !important; transition: none !important; }
+  [data-part], .tune-open .tune { animation: none; }
+  .next figure img { transform: none !important; }
+}
+
+/* ---------- tablet ---------- */
+@media (max-width: 1000px) {
+  .nav ul { display: none; }
+  .now .text { grid-column: 1 / 13; }
+  .now .plate { grid-column: 3 / 13; margin-top: 72px; }
+  .next h2, .next .intro p { grid-column: 1 / 13; }
+  .next .intro p { margin-top: 28px; }
+  .foot .notes { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------- phone ---------- */
+@media (max-width: 640px) {
+  :root { --step-display: 12.6vw; --gap: 120px; }
+  .nav { padding-top: 18px; }
+  .nav .btn { min-height: 44px; padding: 0 16px; }
+  .hero h1 { font-size: 9vw; bottom: calc(var(--margin) + 64px); max-width: none; right: var(--margin); }
+  .tune { width: auto; left: var(--margin); }
+
+  .meaning { display: block; }
+  .meaning h2 .l2 { padding-left: 0; }
+  .meaning .wave { width: 78%; margin: -0.5em calc(-1 * var(--margin)) 0 auto; position: relative; z-index: 1; }
+  .meaning h2 { z-index: 2; }
+  .meaning .copy { margin-top: 40px; }
+  .meaning .bridge { width: 72%; margin-top: 56px; }
+  .meaning .pair-note { margin-top: 40px; }
+
+  .now { display: block; }
+  .now .plate { margin-top: 64px; }
+  .now dl { gap: 10px 24px; }
+
+  .how { display: flex; flex-direction: column; }
+  .how-stage { order: 1; min-height: 52svh; padding: 40px var(--margin); }
+  .slider { order: 2; padding-top: 28px; padding-bottom: 8px; }
+  .slider input::-webkit-slider-thumb { width: 40px; height: 40px; margin-top: -16px; }
+  .how-clause { order: 3; padding-top: 32px; }
+  .stops { grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+  .stops li:nth-child(n) { text-align: left; padding: 0; }
+
+  .next .intro { display: block; }
+  .cta form { font-size: 9vw; }
+  .cta input[type=email] { width: calc(100% - 2.4em); }
+
+  .foot .top { flex-direction: column; }
+  .foot .notes { grid-template-columns: 1fr; gap: 16px; }
+  .mail { font-size: 12.6vw; }
+  .foot .meta { grid-template-columns: 1fr; gap: 10px; }
+  .foot .meta > :nth-child(n) { text-align: left; }
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="wordmark" href="#top" aria-label="Ronin, home" data-part="wordmark">Ronin</a>
+  <nav aria-label="Main" data-part="menu">
+    <ul>
+      <li><a href="#meaning">The name</a></li>
+      <li><a href="#now">What it does</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+  <a class="btn" data-now-link data-part="now" href="#now">GitHub <span class="arrow" aria-hidden="true">&#8599;</span></a>
+</header>
+
+<main id="top">
+  <!-- 1. Hero: the ocean, one line, and Tune for everything else. -->
+  <section class="hero" aria-labelledby="hero-title">
+    <canvas aria-hidden="true"></canvas>
+    <h1 id="hero-title" data-part="headline"><span class="line"><span>Every question runs deep.</span></span></h1>
+
+    <button class="tune-btn" type="button" id="tune-btn" aria-expanded="false" aria-controls="tune">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      Tune
+    </button>
+    <div class="tune" id="tune" role="dialog" aria-label="Tune the ocean and the page" data-ui>
+      <h2>Water</h2>
+      <div class="group">
+        <div class="row"><span>Species</span><button class="species" type="button" id="species" aria-describedby="species-count">Mixed <span aria-hidden="true">&#8635;</span></button><span class="sr" id="species-count">1 of 9</span></div>
+        <div class="row"><label for="school">School<output class="val" id="school-val" for="school">6 sharks</output></label><input type="range" id="school" min="1" max="8" step="1" value="6"></div>
+        <div class="row"><span id="cursor-label">Cursor</span><span class="seg" role="group" aria-labelledby="cursor-label"><button type="button" data-cursor="scare" aria-pressed="true">Scare</button><button type="button" data-cursor="bait" aria-pressed="false">Bait</button></span></div>
+        <div class="row"><span id="click-label">Click</span><span class="seg" role="group" aria-labelledby="click-label"><button type="button" data-click="splash" aria-pressed="true">Splash</button><button type="button" data-click="feed" aria-pressed="false">Feed</button></span></div>
+        <div class="row"><span id="chum-label">Chum the water<span class="sr" id="chum-val">Off</span></span><button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="chum-label" id="chum"></button></div>
+      </div>
+      <h2>On screen</h2>
+      <div class="group">
+        <div class="row"><span id="v-headline">Headline</span><button class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="v-headline" data-show="headline"></button></div>
+        <div class="row"><span id="v-now">GitHub link</span><button class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="v-now" data-show="now"></button></div>
+        <div class="row"><span id="v-menu">Menu</span><button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="v-menu" data-show="menu"></button></div>
+        <div class="row"><span id="v-zen">Only the ocean<kbd>H</kbd></span><button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="v-zen" id="zen"></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. The name, taken literally. -->
+  <section class="meaning" id="meaning" aria-labelledby="meaning-title">
+    <h2 class="head rise" id="meaning-title">Ronin means <span class="l2">wave person.</span></h2>
+    <figure class="wave rise" style="--i:1">
+      <img src="assets/under-the-wave-off-kanagawa-kanagawa-oki.jpg" width="3867" height="2644" loading="lazy" decoding="async"
+           alt="Hokusai's woodblock print of a towering blue wave curling over three boats, Mount Fuji small in the distance.">
+      <figcaption>Katsushika Hokusai, Under the Wave off Kanagawa, about 1830–32.</figcaption>
+    </figure>
+    <div class="copy">
+      <p class="rise" style="--i:2"><span class="kanji" lang="ja">浪人</span>, rōnin: the characters for wave and person. A samurai with no master, going wherever the road leads.</p>
+      <p class="rise" style="--i:3">Ronin does that with a question. No syllabus and no feed deciding for you: pick a thread, follow it as deep as it goes, and the trail is still there when you come back.</p>
+      <figure class="bridge rise">
+      <img src="assets/the-loyal-ronin-crossing-the-long-bridge.jpg" width="1943" height="1269" loading="lazy" decoding="async"
+           alt="Hiroshige print: a column of ronin crossing a long wooden bridge in snow while two boatmen wait below.">
+      <figcaption>Utagawa Hiroshige, The Loyal Ronin Crossing the Long Bridge, about 1840.</figcaption>
+      </figure>
+    </div>
+    <div class="pair-note rise" style="--i:1">
+      <p>Wandering, never lost. Every concept on the map shows the path that led you to it.</p>
+    </div>
+  </section>
+
+  <!-- 3. What Ronin does. The link comes from RONIN_CONFIG in the script below. -->
+  <section class="now" id="now" aria-labelledby="now-title">
+    <div class="text">
+      <h2 class="head rise" id="now-title">Ask once. Follow it down.</h2>
+      <p class="rise" style="--i:1">Ronin turns a question into a small, expandable map of ideas. Pick a concept to read its context, follow a branch, and come back to the trail later.</p>
+      <dl class="rise" style="--i:2">
+        <dt>Stage</dt><dd data-now-stage>Work in progress</dd>
+        <dt>Thinking</dt><dd>Gemini 2.5 Flash</dd>
+        <dt>Sources</dt><dd>Real search citations, or none at all</dd>
+        <dt>Your trails</dt><dd>Saved on your machine</dd>
+      </dl>
+      <div class="actions rise" style="--i:3">
+        <a class="btn" data-now-link href="#now">View on GitHub <span class="arrow" aria-hidden="true">↗</span></a>
+        <a class="link" href="#how">How a trail works</a>
+      </div>
+      <span class="url rise" style="--i:4" data-now-url></span>
+    </div>
+    <figure class="plate rise" style="--i:1">
+      <img src="assets/hammerhead-shark-illustration-on.jpg" width="1920" height="2709" loading="lazy" decoding="async"
+           alt="A 19th-century Japanese ink and wash drawing of two grey hammerhead sharks, one grinning with pointed teeth.">
+      <figcaption>Hammerheads from a 19th-century register of the products of Oki Province.</figcaption>
+    </figure>
+  </section>
+
+  <!-- 4. How a trail works: one slider drives the clause and the trail card. -->
+  <section class="how" id="how" aria-labelledby="how-title">
+    <div class="how-clause">
+      <div>
+        <h2 class="head" id="how-title">First, ask one question.</h2>
+      </div>
+      <p class="desc" id="how-desc">Type anything you're curious about. Ronin answers with five first paths, not one long essay.</p>
+    </div>
+    <div class="how-stage">
+      <video class="poster" autoplay muted loop playsinline preload="metadata" poster="assets/ocean-surface-waves-02-poster.jpg" width="854" height="480" aria-hidden="true">
+        <source src="assets/ocean-surface-waves-02.webm" type="video/webm">
+      </video>
+      <article class="ticket" data-ui aria-live="polite">
+        <header><span>Ronin · trail</span><span class="status" id="t-status" style="--c:#f2b33d"><i></i><span>Asked</span></span></header>
+        <div class="body" id="t-body"></div>
+        <footer><span id="t-who">1 question</span><span id="t-when">0 visited</span></footer>
+      </article>
+    </div>
+    <div class="slider">
+      <label class="sr" for="stage">Step of a Ronin trail</label>
+      <div class="track" id="track"><span class="fill"></span><input type="range" id="stage" min="0" max="3" step="1" value="0"></div>
+      <ol class="stops" id="stops">
+        <li aria-current="step"><button type="button" data-stage="0">Ask</button></li>
+        <li><button type="button" data-stage="1">Branch</button></li>
+        <li><button type="button" data-stage="2">Follow</button></li>
+        <li><button type="button" data-stage="3">Return</button></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 5. Phase two, teased. -->
+  <section class="next" id="next" aria-labelledby="next-title">
+    <div class="intro">
+      <h2 class="head rise" id="next-title">Next, a bigger fish.</h2>
+      <p class="rise" style="--i:1">The sharks are the first creature in this ocean. Something much larger is being drawn for the next release.</p>
+    </div>
+    <figure>
+      <img id="whale" src="assets/miyamoto-musashi-attacking-giant-whale-utagawa-kuniyoshi.png" width="3200" height="1559" loading="lazy" decoding="async"
+           alt="Kuniyoshi triptych: the swordsman Miyamoto Musashi stands on the back of an enormous black whale spotted white, in churning blue waves.">
+      <figcaption>Utagawa Kuniyoshi, Miyamoto Musashi attacking a giant whale, about 1847. Musashi was the best-known ronin of all.</figcaption>
+    </figure>
+  </section>
+
+  <!-- 6. CTA: the blank in the sentence is the form. -->
+  <section class="cta" id="join" aria-labelledby="join-title">
+    <h2 class="sr" id="join-title">Join the beta</h2>
+    <form id="join-form" class="rise" novalidate>
+      Tell <label class="sr" for="email">Your email</label><input type="email" id="email" name="email" placeholder="you@work.com" autocomplete="email" required> when Ronin <button type="submit">ships.</button>
+    </form>
+    <p class="after rise" style="--i:1" id="join-after">One email when Ronin is ready to try online, and nothing else. Sending opens your mail app with the note already written.</p>
+  </section>
+</main>
+
+<footer class="foot" id="contact">
+  <div class="top">
+    <div class="notes">
+      <p>Ronin</p>
+      <p>The rabbit hole explorer. Every question runs deep.</p>
+      <p>A work in progress, built in the open.</p>
+    </div>
+    <a class="link" href="#top">Back to the surface ↑</a>
+  </div>
+  <div>
+    <h2>Write to us</h2>
+    <a class="mail" data-mail href="mailto:hello@ronin.studio"><span>hello</span><span>@ronin.studio</span></a>
+  </div>
+  <div class="meta">
+    <p><a data-now-link href="#now">GitHub</a> · <a href="#how">How it works</a></p>
+    <p>ASCII ocean by <a href="https://github.com/stackedlol/ascii-sharks">stackedlol/ascii-sharks</a>. Prints: Hokusai and Hiroshige, The Met (CC0); Kuniyoshi and the Oki Province register, Wikimedia Commons (public domain); sea footage, Wikimedia Commons (CC0).</p>
+    <p>© 2026 Ronin</p>
+  </div>
+</footer>
+
+<script src="ocean.js"></script>
+<script type="module">
+// ---- Edit this to point the page at Ronin. ----
+const RONIN_CONFIG = {
+  product: "Ronin",
+  url: "https://github.com/mathblender17/Ronin", // swap for the live app once it's deployed
+  stage: "Work in progress",
+  email: "hello@ronin.studio",                   // placeholder contact address
+};
+
+document.documentElement.classList.add("js");
+const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+
+// Running link
+if (RONIN_CONFIG.url) {
+  document.querySelectorAll("[data-now-link]").forEach((a) => { a.href = RONIN_CONFIG.url; a.target = "_blank"; a.rel = "noopener"; });
+  const u = document.querySelector("[data-now-url]");
+  u.textContent = RONIN_CONFIG.url.replace(/^https?:\/\//, "");
+}
+document.querySelector("[data-now-stage]").textContent = RONIN_CONFIG.stage;
+const mail = document.querySelector("[data-mail]");
+const [local, domain] = RONIN_CONFIG.email.split("@");
+mail.href = "mailto:" + RONIN_CONFIG.email;
+mail.innerHTML = `<span>${local}</span><span>@${domain}</span>`;
+
+// Hero entrance
+const hero = document.querySelector(".hero");
+requestAnimationFrame(() => requestAnimationFrame(() => hero.classList.add("ready")));
+
+// The ocean
+const canvas = hero.querySelector("canvas");
+let ocean = null;
+let SPECIES = [{ kind: "mixed", label: "Mixed" }];
+const roster = { kind: "mixed", count: 6 };
+const interaction = { cursor: "scare", click: "splash" };
+try {
+  const mod = window.RoninOcean;
+  SPECIES = mod.SPECIES;
+  ocean = mod.mountOcean(canvas, roster, interaction);
+} catch (e) {
+  console.warn("Ocean failed to start", e);
+}
+
+let si = 0;
+const speciesBtn = document.getElementById("species");
+const speciesCount = document.getElementById("species-count");
+speciesBtn.addEventListener("click", () => {
+  si = (si + 1) % SPECIES.length;
+  roster.kind = SPECIES[si].kind;
+  speciesBtn.firstChild.textContent = SPECIES[si].label + " ";
+  speciesCount.textContent = `${si + 1} of ${SPECIES.length}`;
+  ocean?.set(roster);
+});
+
+const school = document.getElementById("school");
+const schoolVal = document.getElementById("school-val");
+let schoolTimer;
+school.addEventListener("input", () => {
+  const n = +school.value;
+  schoolVal.textContent = n === 1 ? "1 shark" : `${n} sharks`;
+  roster.count = n;
+  clearTimeout(schoolTimer);
+  schoolTimer = setTimeout(() => ocean?.set(roster), 120);
+});
+
+// Cursor and click modes.
+function bindSeg(attr, key) {
+  const buttons = [...document.querySelectorAll(`[data-${attr}]`)];
+  buttons.forEach((b) => b.addEventListener("click", () => {
+    interaction[key] = b.dataset[attr];
+    buttons.forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+    ocean?.interact({ [key]: interaction[key] });
+  }));
+}
+bindSeg("cursor", "cursor");
+bindSeg("click", "click");
+
+// Chum: drop something in the water every so often (a splash, or food in Feed mode).
+const chum = document.getElementById("chum");
+const chumVal = document.getElementById("chum-val");
+let chumTimer = 0;
+function splash() {
+  const r = canvas.getBoundingClientRect();
+  if (r.bottom < 0 || r.top > innerHeight) return;
+  const x = r.left + r.width * (0.12 + Math.random() * 0.76);
+  const y = r.top + r.height * (0.15 + Math.random() * 0.7);
+  window.dispatchEvent(new PointerEvent("pointerdown", { clientX: x, clientY: y, pointerType: "mouse" }));
+}
+chum.addEventListener("click", () => {
+  const on = chum.getAttribute("aria-checked") !== "true";
+  chum.setAttribute("aria-checked", String(on));
+  chumVal.textContent = on ? "On" : "Off";
+  clearInterval(chumTimer);
+  if (on) { splash(); chumTimer = setInterval(splash, 1400); }
+});
+
+// Tune: open/close, and what stays on screen (remembered per browser).
+const root = document.documentElement;
+const tuneBtn = document.getElementById("tune-btn");
+const tunePanel = document.getElementById("tune");
+function setTune(open) {
+  hero.classList.toggle("tune-open", open);
+  tuneBtn.setAttribute("aria-expanded", String(open));
+}
+tuneBtn.addEventListener("click", () => setTune(!hero.classList.contains("tune-open")));
+document.addEventListener("click", (e) => { if (!tunePanel.contains(e.target) && !tuneBtn.contains(e.target)) setTune(false); });
+
+const show = { headline: true, now: true, menu: false, zen: false };
+try { Object.assign(show, JSON.parse(localStorage.getItem("ronin-show") || "{}")); } catch {}
+const zenBtn = document.getElementById("zen");
+function applyShow() {
+  for (const part of ["headline", "now", "menu"]) {
+    root.classList.toggle("hide-" + part, !show[part]);
+    document.querySelector(`[data-show="${part}"]`).setAttribute("aria-checked", String(show[part]));
+  }
+  root.classList.toggle("zen", show.zen);
+  zenBtn.setAttribute("aria-checked", String(show.zen));
+  try { localStorage.setItem("ronin-show", JSON.stringify(show)); } catch {}
+}
+document.querySelectorAll("[data-show]").forEach((b) => b.addEventListener("click", () => {
+  show[b.dataset.show] = !show[b.dataset.show];
+  show.zen = false;
+  applyShow();
+}));
+zenBtn.addEventListener("click", () => { show.zen = !show.zen; applyShow(); });
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape") setTune(false);
+  if (e.key.toLowerCase() === "h" && !e.metaKey && !e.ctrlKey && !e.altKey && !/input|textarea/i.test(e.target.tagName)) { show.zen = !show.zen; applyShow(); }
+});
+applyShow();
+
+// How we work
+const STAGES = [
+  { clause: "First, ask one question.", desc: "Type anything you're curious about. Ronin answers with five first paths, not one long essay.",
+    status: "Asked", color: "#f2b33d", who: "1 question", when: "0 visited", title: "Why do humans seek power?",
+    items: [["Status and survival", 0], ["The fear of losing control", 0], ["Institutions that reward it", 0]] },
+  { clause: "Then, pick one of five paths.", desc: "Each path is a concept with its own short context. Hover to preview it; select it to read more and see its sources.",
+    status: "Layer 1", color: "#6ee6ff", who: "5 paths", when: "1 visited", title: "Status and survival",
+    items: [["Read the context", 1], ["Check the sources", 1], ["Expand this branch", 0]] },
+  { clause: "Then, follow a branch down.", desc: "Expand any concept into its own layer, or point it somewhere: \u201cthrough ancient history\u201d sends the next layer that way.",
+    status: "Layer 2", color: "#3cb54a", who: "11 concepts", when: "Depth 2", title: "Dominance hierarchies in primates",
+    items: [["Expanded from Status and survival", 1], ["Pointed through ancient history", 1], ["New concepts to choose from", 1]] },
+  { clause: "Finally, come back to it later.", desc: "Every trail is saved with its branches. Reopen it from the archive, compare the field notes, or print the recap.",
+    status: "Saved", color: "#e0892c", who: "Saved trail", when: "Depth 3", title: "Why do humans seek power?",
+    items: [["Field notes: counts, depth, subjects", 1], ["Reopen from the archive", 1], ["Print the recap as a PDF", 0]] },
+];
+const stage = document.getElementById("stage");
+const howTitle = document.getElementById("how-title");
+const howDesc = document.getElementById("how-desc");
+const tStatus = document.getElementById("t-status");
+const tBody = document.getElementById("t-body");
+const tWhen = document.getElementById("t-when");
+const tWho = document.getElementById("t-who");
+const stops = [...document.querySelectorAll("#stops li")];
+function renderTicket(s) {
+  tBody.innerHTML = `<h3>${s.title}</h3><ul>${s.items.map(([t, d]) => `<li class="${d ? "done" : ""}"><span class="box" aria-hidden="true"></span><span>${t}</span></li>`).join("")}</ul>`;
+}
+function setStage(i, animate = true) {
+  const s = STAGES[i];
+  stage.value = i;
+  document.getElementById("track").style.setProperty("--fill", `${(i / 3) * 100}%`);
+  stops.forEach((li, k) => (k === i ? li.setAttribute("aria-current", "step") : li.removeAttribute("aria-current")));
+  const swap = () => {
+    howTitle.textContent = s.clause;
+    howDesc.textContent = s.desc;
+    tStatus.style.setProperty("--c", s.color);
+    tStatus.lastElementChild.textContent = s.status;
+    tWhen.textContent = s.when;
+    tWho.textContent = s.who;
+    renderTicket(s);
+    [howTitle, howDesc, tBody].forEach((el) => (el.style.opacity = 1));
+  };
+  if (!animate || reduced.matches) return swap();
+  [howTitle, howDesc, tBody].forEach((el) => (el.style.opacity = 0));
+  setTimeout(swap, 200);
+}
+stage.addEventListener("input", () => setStage(+stage.value));
+document.querySelectorAll("[data-stage]").forEach((b) => b.addEventListener("click", () => setStage(+b.dataset.stage)));
+setStage(0, false);
+
+// Join: no backend yet, so write the email for them.
+document.getElementById("join-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const email = document.getElementById("email");
+  if (!email.value || !email.checkValidity()) { email.focus(); document.getElementById("join-after").textContent = "That doesn't look like an email address yet."; return; }
+  const subject = encodeURIComponent(`${RONIN_CONFIG.product} early access`);
+  const body = encodeURIComponent(`Tell me when ${RONIN_CONFIG.product} ships.\n\n${email.value}`);
+  location.href = `mailto:${RONIN_CONFIG.email}?subject=${subject}&body=${body}`;
+  document.getElementById("join-after").textContent = "Your mail app should open with the note written. Send it and you're on the list.";
+});
+
+// Section entrances
+const io = new IntersectionObserver((entries) => {
+  for (const en of entries) if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
+}, { rootMargin: "0px 0px -10% 0px" });
+document.querySelectorAll(".rise").forEach((el) => io.observe(el));
+
+// The whale: a slow scroll-linked scale.
+const whale = document.getElementById("whale");
+let ticking = false;
+function onScroll() {
+  if (ticking || reduced.matches) return;
+  ticking = true;
+  requestAnimationFrame(() => {
+    const r = whale.getBoundingClientRect();
+    const p = Math.min(1, Math.max(0, 1 - (r.top + r.height / 2) / (innerHeight + r.height / 2)));
+    whale.style.transform = `scale(${1.14 - p * 0.14})`;
+    ticking = false;
+  });
+}
+addEventListener("scroll", onScroll, { passive: true });
+onScroll();
+
+const vid = document.querySelector(".how-stage video");
+if (reduced.matches) vid.pause();
+</script>
+</body>
+</html>
