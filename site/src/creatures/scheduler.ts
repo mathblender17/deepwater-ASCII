@@ -47,12 +47,7 @@ export function nextGap(rand: () => number, first: boolean): number {
   return first ? 8 + 4 * rand() : 25 + 20 * rand();
 }
 
-/** Who appears next: visitors share half the appearances and legendaries the other half; a missing group gives way. */
-export function pickCreature(rand: () => number, loaded: { name: string; role: "legendary" | "visitor" }[]): string {
-  const visitors = loaded.filter((c) => c.role === "visitor"), legends = loaded.filter((c) => c.role !== "visitor");
-  const r = rand();
-  const from = (list: typeof loaded, k: number) => list[Math.min(list.length - 1, Math.floor(k * list.length))].name;
-  if (!visitors.length) return from(legends, r);
-  if (!legends.length) return from(visitors, r);
-  return r < 0.5 ? from(visitors, r / 0.5) : from(legends, (r - 0.5) / 0.5);
+/** Who appears next: every loaded creature equally often. */
+export function pickCreature(rand: () => number, loaded: { name: string }[]): string {
+  return loaded[Math.min(loaded.length - 1, Math.floor(rand() * loaded.length))].name;
 }

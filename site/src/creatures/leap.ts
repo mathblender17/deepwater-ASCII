@@ -18,7 +18,8 @@ export function leapAt(t: number, a: Point, b: Point, view: { w: number; h: numb
   if (t < 0 || t >= LEAP_TOTAL) return null;
   const R = SIZE * discRadius(view.cw);
   const surfaceAt = GATHER, leapAt = surfaceAt + SURFACE, stayAt = leapAt + LEAP, deepAt = stayAt + STAY;
-  const heading = Math.atan2(b.y - a.y, b.x - a.x);
+  // A normal jump seen from the side of the pool: upright, only ever facing left or right.
+  const face = b.x >= a.x ? 0 : Math.PI;
 
   // Circle A forms, holds while Kyogre surfaces, and closes behind the leap.
   const circles: Circle[] = [];
@@ -46,28 +47,28 @@ export function leapAt(t: number, a: Point, b: Point, view: { w: number; h: numb
   if (t >= surfaceAt && t < leapAt) {
     phase = "surface";
     const k = easeOut((t - surfaceAt) / SURFACE);
-    sprite = { pose: "breach", ...a, widthCells: 30 + 10 * k, brightness: 0.6 + 0.4 * k, squash: 1, angle: heading, layer: "over" };
+    sprite = { pose: "breach", ...a, widthCells: 30 + 10 * k, brightness: 0.6 + 0.4 * k, squash: 1, angle: face, layer: "over" };
   } else if (t >= leapAt && t < stayAt) {
     phase = "leap";
     const k = (t - leapAt) / LEAP;
-    // A gentle sideways arc, and it swells as it rises toward the camera, then shrinks nosing down.
+    // A gentle arc, and it swells as it rises toward the camera, then shrinks nosing down.
     const arc = Math.sin(Math.PI * k) * 0.06 * Math.hypot(b.x - a.x, b.y - a.y);
     sprite = {
       pose: "main",
-      x: a.x + (b.x - a.x) * k - Math.sin(heading) * arc,
-      y: a.y + (b.y - a.y) * k + Math.cos(heading) * arc,
+      // The arc always lifts up the screen, like a jump.
+      x: a.x + (b.x - a.x) * k,
+      y: a.y + (b.y - a.y) * k - arc,
       widthCells: 40 + 16 * Math.sin(Math.PI * k) - 6 * k,
       brightness: k < 2 / 3 ? 1 : 1 - 1.5 * (k - 2 / 3),
-      squash: 1, angle: heading, layer: "over",
+      squash: 1, angle: face, layer: "over",
     };
   } else if (t >= stayAt && t < deepAt) {
     phase = "stay";
-    const k = (t - stayAt) / STAY;
-    sprite = { pose: "main", ...b, widthCells: 34, brightness: 0.35, squash: 1, angle: heading + 0.5 * Math.sin(Math.PI * k), layer: "under" };
+    sprite = { pose: "main", ...b, widthCells: 34, brightness: 0.35, squash: 1, angle: face, layer: "under" };
   } else if (t >= deepAt) {
     phase = "deep";
     const k = (t - deepAt) / DEEP;
-    sprite = { pose: "main", ...b, widthCells: 34 - 28 * easeInOut(k), brightness: 0.35 * (1 - k), squash: 1, angle: heading, layer: "under" };
+    sprite = { pose: "main", ...b, widthCells: 34 - 28 * easeInOut(k), brightness: 0.35 * (1 - k), squash: 1, angle: face, layer: "under" };
   }
 
   // Keep the water empty around Kyogre while it is in the air.

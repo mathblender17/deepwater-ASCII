@@ -50,15 +50,17 @@ import { pickCreature } from "./scheduler.ts";
 
 const all = [{ name: "gyarados", role: "visitor" as const }, { name: "lugia", role: "legendary" as const }, { name: "kyogre", role: "legendary" as const }];
 
-Deno.test("visitors and legendaries each get half of the appearances", () => {
+Deno.test("every loaded creature appears equally often", () => {
   assertEquals(pickCreature(() => 0.0, all), "gyarados");
-  assertEquals(pickCreature(() => 0.49, all), "gyarados");
-  assertEquals(pickCreature(() => 0.6, all), "lugia");
-  assertEquals(pickCreature(() => 0.9, all), "kyogre");
+  assertEquals(pickCreature(() => 0.32, all), "gyarados");
+  assertEquals(pickCreature(() => 0.34, all), "lugia");
+  assertEquals(pickCreature(() => 0.65, all), "lugia");
+  assertEquals(pickCreature(() => 0.67, all), "kyogre");
+  assertEquals(pickCreature(() => 0.999, all), "kyogre");
 });
 
-Deno.test("with only legendaries loaded they share every appearance", () => {
-  const legends = all.slice(1);
-  assertEquals(pickCreature(() => 0.2, legends), "lugia");
-  assertEquals(pickCreature(() => 0.7, legends), "kyogre");
+Deno.test("with two loaded they split evenly", () => {
+  const two = all.slice(1);
+  assertEquals(pickCreature(() => 0.2, two), "lugia");
+  assertEquals(pickCreature(() => 0.7, two), "kyogre");
 });

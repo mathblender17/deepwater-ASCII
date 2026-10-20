@@ -24,10 +24,13 @@ Deno.test("kyogre is hidden while circle A forms", () => {
   assertEquals(at(SURFACE - 0.01)!.sprite, null);
 });
 
-Deno.test("it surfaces over the water and leaps facing its travel", () => {
+Deno.test("it surfaces over the water and jumps upright, facing left or right only", () => {
   assertEquals(at(SURFACE + 0.1)!.sprite!.layer, "over");
   assertEquals(at(SURFACE + 0.1)!.sprite!.pose, "breach");
-  assertAlmostEquals(at(LEAP + 0.8)!.sprite!.angle, Math.atan2(b.y - a.y, b.x - a.x), 1e-9);
+  // A normal jump: never rolled or tilted, whatever the travel direction.
+  for (const t of [SURFACE + 0.1, LEAP + 0.8, STAY + 1, DEEP + 1]) assertEquals(at(t)!.sprite!.angle, 0, `tilted at ${t}s`);
+  const left = leapAt(LEAP + 0.8, b, a, view, 0.6)!.sprite!;
+  assertEquals(left.angle, Math.PI);
 });
 
 Deno.test("width peaks mid-leap", () => {
