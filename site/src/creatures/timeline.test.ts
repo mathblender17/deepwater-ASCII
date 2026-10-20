@@ -1,5 +1,5 @@
 import { assert, assertAlmostEquals, assertEquals } from "jsr:@std/assert@1.0.8";
-import { frameAt, nextGap, TOTAL } from "./timeline.ts";
+import { BREACH, DEEP, FLIGHT, frameAt, nextGap, TOTAL } from "./timeline.ts";
 
 const start = { x: 720, y: 450 };
 const view = { w: 1440, h: 900, cw: 12 };
@@ -38,4 +38,11 @@ Deno.test("gaps", () => {
   assertEquals(nextGap(() => 1, true), 12);
   assertEquals(nextGap(() => 0, false), 25);
   assertEquals(nextGap(() => 1, false), 45);
+});
+
+Deno.test("grows toward the camera before leaving", () => {
+  // Coming at the camera means mostly growing in place; it only sweeps off the top near the end.
+  const f = at(DEEP + BREACH + FLIGHT * 0.6)!;
+  assert(f.y > view.h * 0.15, `centre already at ${f.y}`);
+  assert(f.widthCells > 70, `width ${f.widthCells}`);
 });

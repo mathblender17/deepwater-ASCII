@@ -63,3 +63,9 @@ Deno.test("empty image", () => {
   assertEquals(m.w, 0);
   assertEquals(m.coverage, 0);
 });
+
+Deno.test("lavender-shaded body stays body, not belly", () => {
+  // Lugia's white body is shaded with a lavender tint; only the clearly blue belly is BELLY.
+  const m = buildMask(image(40, 40, square(() => [215, 220, 242])), 40, 40);
+  assertEquals(sampleCell(m, 0.3, 0.3, 0.7, 0.7).region, BODY);
+});

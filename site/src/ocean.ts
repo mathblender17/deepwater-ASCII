@@ -85,3 +85,5 @@ export function mountOcean(canvas: HTMLCanvasElement, roster: Roster, interactio
   const kinds = specs({ kind: "mixed", count: 8 }).map((s) => s.kind);
   console.assert(new Set(kinds).size === ALL_KINDS.length, "mixed roster should hold every shark kind");
 }
+
+export { mountCreatures } from "./creatures/index.ts";

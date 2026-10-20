@@ -38,7 +38,8 @@ export function frameAt(t: number, start: { x: number; y: number }, view: { w: n
   // Rise until the sprite's bottom edge clears the top of the view.
   const endY = -(125 * view.cw * aspect) / 2 - view.h * 0.05;
   return {
-    phase: "flight", x: start.x + drift, y: start.y + (endY - start.y) * ease,
+    // Grow mostly in place (toward the camera), then sweep off the top late in the flight.
+    phase: "flight", x: start.x + drift, y: start.y + (endY - start.y) * k * k * k,
     widthCells, brightness: 1, squash: beat(t, 2), layer: "over",
   };
 }

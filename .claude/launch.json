@@ -4,7 +4,7 @@
     {
       "name": "ronin-site",
       "runtimeExecutable": "deno",
-      "runtimeArgs": ["run", "--allow-net", "--allow-read", "jsr:@std/http@1.0.9/file-server", "site", "--port", "4173"],
+      "runtimeArgs": ["run", "--allow-net", "--allow-read", "jsr:@std/http@1.0.9/file-server", ".", "--port", "4173"],
       "port": 4173
     }
   ]

@@ -64,7 +64,7 @@ export function buildMask(rgba: Uint8ClampedArray, w: number, h: number): Mask {
       if (reached[i]) continue;
       const r = rgba[i * 4], g = rgba[i * 4 + 1], b = rgba[i * 4 + 2];
       const lum = lumOf(r, g, b);
-      px[y * mw + x] = lum < 0.45 && b - r > 30 ? MARKS : lum >= 0.45 && b - r > 25 ? BELLY : BODY;
+      px[y * mw + x] = lum < 0.45 && b - r > 30 ? MARKS : lum >= 0.45 && b - r > 45 ? BELLY : BODY;
     }
   }
   return { w: mw, h: mh, px, coverage: count / (mw * mh) };
