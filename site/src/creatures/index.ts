@@ -7,6 +7,8 @@ import { type Colors, drawSprite, rgbOf } from "./draw.ts";
 import { BELLY, BODY, buildMask, FIN, MARKS, type Mask, type PaletteEntry } from "./mask.ts";
 import { leapAt, leapTarget } from "./leap.ts";
 import { riseAt } from "./rise.ts";
+import { drawSerpent } from "./serpent-draw.ts";
+import { swivelAt } from "./swivel.ts";
 import { clearZones, type Scene } from "./scene.ts";
 import { Scheduler } from "./scheduler.ts";
 import { drawWater } from "./water.ts";
@@ -83,6 +85,10 @@ async function loadCreature(name: string, e: Entry, base: URL): Promise<Creature
 type Placement = { a: Point; b: Point };
 
 function place(c: Creature, view: View): Placement {
+  if (c.motion === "swivel") {
+    const a = { x: view.w * (0.15 + 0.1 * Math.random()), y: view.h * (0.55 + 0.2 * Math.random()) };
+    return { a, b: { x: view.w * (0.65 + 0.15 * Math.random()), y: view.h * (0.2 + 0.15 * Math.random()) } };
+  }
   if (c.motion === "leap") {
     const a = { x: view.w * (0.3 + 0.4 * Math.random()), y: view.h * (0.35 + 0.3 * Math.random()) };
     return { a, b: leapTarget(a, view, Math.random) };
@@ -96,6 +102,8 @@ function sceneAt(c: Creature, t: number, p: Placement, view: View): Scene | null
   switch (c.motion) {
     case "leap":
       return leapAt(t, p.a, p.b, view, aspect);
+    case "swivel":
+      return swivelAt(t, p.a, p.b, view);
     default:
       return riseAt(t, p.a, view, aspect);
   }
@@ -152,6 +160,15 @@ export async function mountCreatures(ocean: Ocean, opts: { packUrl: string; onRe
   });
   ocean.addLayer(spriteLayer("under"));
   ocean.addLayer(spriteLayer("over"));
+  ocean.addLayer({
+    depth: "over",
+    draw(ctx, g) {
+      const s = scene?.serpent;
+      if (!s || !current || reduced.matches) return;
+      const c = current.creature;
+      drawSerpent(ctx, g, s, c.head, c.colors, light(), c.facing);
+    },
+  });
 
   const view = (): View => {
     const r = ocean.canvas.getBoundingClientRect();

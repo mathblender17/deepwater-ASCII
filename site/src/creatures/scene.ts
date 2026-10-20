@@ -18,8 +18,9 @@ export type Sprite = {
   angle: number;
   layer: "under" | "over";
 };
-export type SerpentNode = { x: number; y: number };
-export type Serpent = { nodes: SerpentNode[]; angle: number; widthCells: number; brightness: number };
+/** A body point: k = index from the head (0), u = how far along the path (0 at circle A, 1 at circle B). */
+export type SerpentNode = { x: number; y: number; k: number; u: number };
+export type Serpent = { nodes: SerpentNode[]; angle: number; widthCells: number; brightness: number; headVisible: boolean };
 export type Scene = {
   phase: string;
   circles: Circle[];
