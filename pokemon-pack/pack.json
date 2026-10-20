@@ -1,0 +1,122 @@
+{
+  "lugia": {
+    "pose": "Lugia-front.webp",
+    "breach": "Lugia-Pokemon-front.webp",
+    "colors": {
+      "body": "#eef1f6",
+      "belly": "#a9bce8",
+      "marks": "#2c3678"
+    },
+    "role": "legendary",
+    "motion": "rise"
+  },
+  "kyogre": {
+    "role": "legendary",
+    "motion": "leap",
+    "pose": "kyogre side view.webp",
+    "facing": 180,
+    "palette": [
+      [
+        "#1e79b8",
+        "body"
+      ],
+      [
+        "#136ab0",
+        "body"
+      ],
+      [
+        "#286da9",
+        "body"
+      ],
+      [
+        "#2587b4",
+        "body"
+      ],
+      [
+        "#233f70",
+        "body"
+      ],
+      [
+        "#142e5d",
+        "body"
+      ],
+      [
+        "#21519f",
+        "body"
+      ],
+      [
+        "#c5d6ea",
+        "belly"
+      ],
+      [
+        "#bed4ea",
+        "belly"
+      ],
+      [
+        "#f2f4f8",
+        "belly"
+      ],
+      [
+        "#c8304a",
+        "marks"
+      ],
+      [
+        "#a02040",
+        "marks"
+      ]
+    ],
+    "colors": {
+      "body": "#2f7fd6",
+      "belly": "#e6eef7",
+      "marks": "#d8344f"
+    }
+  },
+  "gyarados": {
+    "role": "visitor",
+    "motion": "swivel",
+    "head": "garados side view.webp",
+    "headCrop": [
+      0.56,
+      0,
+      0.98,
+      0.46
+    ],
+    "facing": 180,
+    "palette": [
+      [
+        "#4fa6ae",
+        "body"
+      ],
+      [
+        "#7eacad",
+        "body"
+      ],
+      [
+        "#3d4a4a",
+        "marks"
+      ],
+      [
+        "#f6df94",
+        "belly"
+      ],
+      [
+        "#f5f9f8",
+        "fin"
+      ],
+      [
+        "#d7dac8",
+        "fin"
+      ],
+      [
+        "#c0303a",
+        "marks"
+      ]
+    ],
+    "colors": {
+      "body": "#3fa9b5",
+      "belly": "#f3dc8e",
+      "marks": "#22393d",
+      "fin": "#eef4f6"
+    }
+  }
+}

@@ -8,11 +8,15 @@ The landing page for [Ronin](https://github.com/mathblender17/Ronin), the rabbit
 
 ## Run
 
-The page is static. Open `site/index.html` directly, or serve the folder:
+**Live demo:** https://mathblender17.github.io/shark-ASCII-art---ronin-landing-page/
+
+The page is static. Serve the project root and open `/site/` (the Pokémon load from `pokemon-pack/`, which needs a server; opened straight from disk you get the ocean without them):
 
 ```sh
-deno run --allow-net --allow-read jsr:@std/http@1.0.9/file-server site --port 4173
+deno run --allow-net --allow-read jsr:@std/http@1.0.9/file-server . --port 4173
 ```
+
+Then open http://localhost:4173/site/. Creatures are listed in `pokemon-pack/pack.json`; **Tune → Summon** calls any of them.
 
 ## Edit
 

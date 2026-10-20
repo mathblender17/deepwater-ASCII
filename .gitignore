@@ -2,4 +2,10 @@ ronin-repo-ref/
 .taste-skill/
 node_modules/
 dist/
-pokemon-pack/
+# Pokémon art: only the files the hosted demo uses are published; the rest stays local.
+pokemon-pack/*
+!pokemon-pack/pack.json
+!pokemon-pack/Lugia-front.webp
+!pokemon-pack/Lugia-Pokemon-front.webp
+!pokemon-pack/kyogre side view.webp
+!pokemon-pack/garados side view.webp
