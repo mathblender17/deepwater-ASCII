@@ -5,6 +5,7 @@
 import type { Grid, Layer } from "../../../vendor-ascii-sharks/src/renderer.ts";
 import { type Colors, drawSprite, rgbOf } from "./draw.ts";
 import { BELLY, BODY, buildMask, FIN, MARKS, type Mask, type PaletteEntry } from "./mask.ts";
+import { entryProblem } from "./pack.ts";
 import { leapAt, leapTarget } from "./leap.ts";
 import { riseAt } from "./rise.ts";
 import { drawSerpent } from "./serpent-draw.ts";
@@ -67,6 +68,8 @@ async function loadMask(url: string, palette?: PaletteEntry[], crop?: [number, n
 }
 
 async function loadCreature(name: string, e: Entry, base: URL): Promise<Creature> {
+  const problem = entryProblem(e);
+  if (problem) throw new Error(`${name}: ${problem}`);
   const palette = e.palette?.map(([hex, region]) => ({ rgb: rgbOf(hex), region: REGION[region] ?? BODY }));
   const url = (f: string) => new URL(f, base).href;
   const ok = (m: Mask | null) => (m && m.w && m.coverage <= 0.9 ? m : null);

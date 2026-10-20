@@ -1,7 +1,7 @@
 /** Paints a creature sprite onto the ASCII grid in the same block-and-glyph style as the sharks. */
 import type { Grid } from "../../../vendor-ascii-sharks/src/renderer.ts";
 import { forLightCanvas } from "./color.ts";
-import { cellToUV } from "./geometry.ts";
+import { cellToUV, orient } from "./geometry.ts";
 import { BELLY, BODY, FIN, MARKS, type Mask, sampleCell } from "./mask.ts";
 import type { Sprite } from "./scene.ts";
 
@@ -37,7 +37,8 @@ export function drawSprite(ctx: CanvasRenderingContext2D, grid: Grid, mask: Mask
   const { cw, ch, cols, rows, t } = grid;
   const wPx = s.widthCells * cw;
   const hPx = wPx * (mask.h / mask.w) * s.squash;
-  const box = { x: s.x, y: s.y, wPx, hPx, angle: s.angle - facing };
+  const { rot, flip } = orient(s.angle, facing);
+  const box = { x: s.x, y: s.y, wPx, hPx, angle: rot, flip };
   const reach = Math.hypot(wPx, hPx) / 2;
   const paint = painter(s.brightness, light);
   const rgb = REGION_NAMES.map((n) => rgbOf(colors[n] ?? colors.body));
